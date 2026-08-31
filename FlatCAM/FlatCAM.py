@@ -1,6 +1,7 @@
 import sys
 import os
 import signal
+import locale
 from multiprocessing import freeze_support
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication
@@ -72,6 +73,12 @@ def main():
 			QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, False)
 
 	app = QApplication(sys.argv)
+
+	# Qt applies the system locale when QApplication starts.  Protobuf parses
+	# numeric defaults such as "0.5" through the C locale, so locales using a
+	# decimal comma make OR-Tools descriptors fail to load.  FlatCAM/G-Code
+	# numeric data also uses a decimal point, therefore keep only LC_NUMERIC in C.
+	locale.setlocale(locale.LC_NUMERIC, 'C')
 
 	# apply Qt style if defined
 	if(s := style()):

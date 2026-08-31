@@ -7,6 +7,7 @@
 # ##########################################################
 
 from abc import ABCMeta, abstractmethod
+import math
 
 # module-root dictionary of preprocessors
 

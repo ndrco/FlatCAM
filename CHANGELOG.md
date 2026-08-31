@@ -8,6 +8,11 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+31.08.2026 - ndrco 2024.4.3
+
+- fixed OR-Tools descriptor loading under locales with a decimal comma
+- fixed missing math functions in G-Code preprocessors
+
 31.08.2026 - ndrco 2024.4.2
 
 - fixed OR-Tools drill path generation by pinning its matching protobuf runtime
