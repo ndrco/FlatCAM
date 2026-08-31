@@ -292,10 +292,10 @@ class ExcellonObject(FlatCAMObj, Excellon):
 			self.ui.tools_table.setItem(self.tool_row, 4, empty_plot_item)
 
 			if 'multicolor' in self.tools[tool_no] and self.tools[tool_no]['multicolor'] is not None:
-				red = self.tools[tool_no]['multicolor'][0] * 255
-				green = self.tools[tool_no]['multicolor'][1] * 255
-				blue = self.tools[tool_no]['multicolor'][2] * 255
-				alpha = self.tools[tool_no]['multicolor'][3] * 255
+				red = int(self.tools[tool_no]['multicolor'][0] * 255)
+				green = int(self.tools[tool_no]['multicolor'][1] * 255)
+				blue = int(self.tools[tool_no]['multicolor'][2] * 255)
+				alpha = int(self.tools[tool_no]['multicolor'][3] * 255)
 				h_color = QtGui.QColor(red, green, blue, alpha)
 				self.ui.tools_table.item(self.tool_row, 4).setBackground(h_color)
 			else:
