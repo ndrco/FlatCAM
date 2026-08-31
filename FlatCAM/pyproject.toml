@@ -1,8 +1,9 @@
 [tool.poetry]
-name = "flatcam-2024-4"
-version = "2024.4"
+name = "flatcam-ndrco"
+version = "2024.4.1"
 description = "2D Computer-Aided PCB Manufacturing for CNC router"
 authors = ["Victoria Danchenko <vika.sonne@rambler.ru>", "Marius Stanciu", "Pablo Caram"]
+maintainers = ["ndrco <ndrco@yahoo.com>"]
 readme = "README.md"
 packages = [{include = "flatcam_2024"}]
 
@@ -10,6 +11,7 @@ packages = [{include = "flatcam_2024"}]
 python = ">=3.10.0,<3.11"
 pyqt5 = "5.15.2"
 numpy = "1.22"
+scipy = "1.11.4"
 matplotlib = "3.7.1"
 librosa = "0.9.2"
 cycler = "0.11.0"

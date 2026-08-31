@@ -8,6 +8,12 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+31.08.2026 - ndrco 2024.4.1
+
+- fixed a crash when enabling Multi-Color for Excellon objects
+- pinned compatible NumPy and SciPy versions for AppImage builds
+- moved the Matplotlib cache to a writable user directory
+
 04.2024
 
 - move publish process to zipapp

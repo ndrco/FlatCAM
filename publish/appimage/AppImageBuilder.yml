@@ -16,7 +16,7 @@ AppDir:
     id: org.flatcam.FlatCAM
     name: flatcam
     icon: flatcam_icon256
-    version: '2024.4'
+    version: '2024.4-ndrco.1'
     # Set the python executable as entry point
     exec: usr/bin/python3
     # Set the application main script path as argument. Use '$@' to forward CLI parameters
@@ -41,6 +41,8 @@ AppDir:
       - python3-vispy
       - python3-simplejson
       - python3-shapely
+      - python3-numpy
+      - python3-scipy
       # - python3-reportlab
       # - python3-reportlab-accel
       # - python3-rl-renderpm # reportlab package available since 24.04
@@ -73,7 +75,7 @@ AppDir:
       # See https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH
       PYTHONPATH: '${APPDIR}/usr/lib/python3.10:${APPDIR}/usr/lib/python3/dist-packages:${APPDIR}/usr/local/lib/python3.10/dist-packages'
       # Set matplotlib config path
-      MPLCONFIGDIR: '${APPDIR}/usr/share/matplotlib/matplotlib.conf'
+      MPLCONFIGDIR: '${HOME}/.cache/flatcam/matplotlib'
       MATPLOTLIBDATA: '${APPDIR}/usr/share/matplotlib/mpl-data'
       MATPLOTLIBRC: '${APPDIR}/usr/share/matplotlib/matplotlib.conf/matplotlibrc'
       # Set tk paths
@@ -89,7 +91,7 @@ AppDir:
     echo "python --version: $(python3 --version)"
     export C_INCLUDE_PATH="${TARGET_APPDIR}/usr/include/:$C_INCLUDE_PATH"
     export PIP_CACHE_DIR=./pip-cache
-    python3 -m pip install --prefix=usr --root=$TARGET_APPDIR langcodes rlpycairo rtree protobuf ortools reportlab==4.2.0 rl-renderPM==4.0.3
+    python3 -m pip install --prefix=usr --root=$TARGET_APPDIR numpy==1.22.4 langcodes rlpycairo rtree protobuf ortools reportlab==4.2.0 rl-renderPM==4.0.3
     # copy matplotlib data
     cp -R $TARGET_APPDIR/usr/share/matplotlib/mpl-data $TARGET_APPDIR/usr/lib/python3/dist-packages/matplotlib/
     # Patch ezdxf package
