@@ -8,6 +8,11 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+31.08.2026 - ndrco 2024.4.2
+
+- fixed OR-Tools drill path generation by pinning its matching protobuf runtime
+- aligned the AppImage dependencies with the versions declared by the source project
+
 31.08.2026 - ndrco 2024.4.1
 
 - fixed a crash when enabling Multi-Color for Excellon objects

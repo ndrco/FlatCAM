@@ -16,7 +16,7 @@ AppDir:
     id: org.flatcam.FlatCAM
     name: flatcam
     icon: flatcam_icon256
-    version: '2024.4-ndrco.1'
+    version: '2024.4-ndrco.2'
     # Set the python executable as entry point
     exec: usr/bin/python3
     # Set the application main script path as argument. Use '$@' to forward CLI parameters
@@ -91,7 +91,7 @@ AppDir:
     echo "python --version: $(python3 --version)"
     export C_INCLUDE_PATH="${TARGET_APPDIR}/usr/include/:$C_INCLUDE_PATH"
     export PIP_CACHE_DIR=./pip-cache
-    python3 -m pip install --prefix=usr --root=$TARGET_APPDIR numpy==1.22.4 langcodes rlpycairo rtree protobuf ortools reportlab==4.2.0 rl-renderPM==4.0.3
+    python3 -m pip install --prefix=usr --root=$TARGET_APPDIR numpy==1.22.4 scipy==1.11.4 langcodes rlpycairo rtree protobuf==4.21.12 ortools==9.6.2534 reportlab==4.2.0 rl-renderPM==4.0.3
     # copy matplotlib data
     cp -R $TARGET_APPDIR/usr/share/matplotlib/mpl-data $TARGET_APPDIR/usr/lib/python3/dist-packages/matplotlib/
     # Patch ezdxf package
