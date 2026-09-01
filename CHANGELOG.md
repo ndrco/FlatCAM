@@ -16,6 +16,7 @@ CHANGELOG for FlatCAM beta
 - pinned compatible NumPy, SciPy, OR-Tools and protobuf versions
 - moved the Matplotlib cache to a writable user directory
 - fixed missing math functions in G-Code preprocessors
+- separated the preferences schema version from the application version to preserve settings during upgrades
 
 31.08.2026 - ndrco 2024.4.3
 

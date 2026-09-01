@@ -131,6 +131,9 @@ class App(QtCore.QObject):
 	# version = "Unstable Version"
 	version = '2026.09'
 	version_date = '2026/09/01'
+	# Preferences schema version. Keep it independent from the application
+	# release version so normal upgrades do not reset compatible user settings.
+	defaults_version = '2024.4-ndrco.3'
 	beta = True
 
 	# ###############################################################################################################
@@ -392,7 +395,7 @@ class App(QtCore.QObject):
 			f.close()
 
 		# the factory defaults are written only once at the first launch of the application after installation
-		FlatCAMDefaults.save_factory_defaults(self.factory_defaults_path(), self.version)
+		FlatCAMDefaults.save_factory_defaults(self.factory_defaults_path(), self.defaults_version)
 
 		# create a recent files json file if there is none
 		rec_f_path = self.recent_files_path()
@@ -419,7 +422,7 @@ class App(QtCore.QObject):
 		# ############################################################################################################
 		# ################################# DEFAULTS - PREFERENCES STORAGE ###########################################
 		# ############################################################################################################
-		self.defaults = FlatCAMDefaults(beta=self.beta, version=self.version)
+		self.defaults = FlatCAMDefaults(beta=self.beta, version=self.defaults_version)
 
 		current_defaults_path = os.path.join(self.data_path, "current_defaults.FlatConfig")
 		if user_defaults:
