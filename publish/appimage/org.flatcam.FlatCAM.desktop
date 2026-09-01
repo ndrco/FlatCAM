@@ -1,6 +1,6 @@
 [Desktop Entry]
 X-AppImage-Arch=x86_64
-X-AppImage-Version=2024.4
+X-AppImage-Version=2026.09
 X-AppImage-Name=flatcam
 Name=flatcam
 Exec=usr/bin/python3

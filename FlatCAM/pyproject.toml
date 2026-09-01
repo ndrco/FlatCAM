@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flatcam-ndrco"
-version = "2024.4.3"
+version = "2026.09"
 description = "2D Computer-Aided PCB Manufacturing for CNC router"
 authors = ["Victoria Danchenko <vika.sonne@rambler.ru>", "Marius Stanciu", "Pablo Caram"]
 maintainers = ["ndrco <ndrco@yahoo.com>"]

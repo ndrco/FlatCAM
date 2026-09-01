@@ -8,6 +8,15 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+01.09.2026 - ndrco 2026.09
+
+- published the first maintained ndrco AppImage release
+- fixed the Excellon Multi-Color crash caused by floating-point Qt colors
+- fixed OR-Tools drill-path generation under decimal-comma locales such as ru_RU
+- pinned compatible NumPy, SciPy, OR-Tools and protobuf versions
+- moved the Matplotlib cache to a writable user directory
+- fixed missing math functions in G-Code preprocessors
+
 31.08.2026 - ndrco 2024.4.3
 
 - fixed OR-Tools descriptor loading under locales with a decimal comma
