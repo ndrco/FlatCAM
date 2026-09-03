@@ -129,8 +129,8 @@ class App(QtCore.QObject):
 	# ################################### Version and VERSION DATE ##################################################
 	# ###############################################################################################################
 	# version = "Unstable Version"
-	version = '2026.09'
-	version_date = '2026/09/01'
+	version = '2026.09.1'
+	version_date = '2026/09/03'
 	# Preferences schema version. Keep it independent from the application
 	# release version so normal upgrades do not reset compatible user settings.
 	defaults_version = '2024.4-ndrco.3'

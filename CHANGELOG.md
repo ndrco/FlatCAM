@@ -8,6 +8,12 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+03.09.2026 - ndrco 2026.09.1
+
+- fixed a crash in Non-Copper Clearing when tool validity was enabled for a Geometry object
+- prevented NCC operation changes from accessing a stale or missing tool-table row
+- corrected source-object type handling when choosing the geometry approximation setting
+
 01.09.2026 - ndrco 2026.09
 
 - published the first maintained ndrco AppImage release

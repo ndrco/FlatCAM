@@ -239,12 +239,23 @@ class NonCopperClear(AppTool, Gerber):
 		self.ui.parameters_ui(val=val)
 
 		current_row = self.ui.tools_table.currentRow()
-		try:
-			current_uid = int(self.ui.tools_table.item(current_row, 3).text())
-			self.ncc_tools[current_uid]['data']['tools_ncc_operation'] = val
-			# TODO got a crash here, a KeyError exception; need to see it again and find out the why
-		except AttributeError:
+		if current_row < 0:
 			return
+
+		uid_item = self.ui.tools_table.item(current_row, 3)
+		if uid_item is None:
+			return
+
+		try:
+			current_uid = int(uid_item.text())
+		except (AttributeError, TypeError, ValueError):
+			return
+
+		tool = self.ncc_tools.get(current_uid)
+		if tool is None:
+			return
+
+		tool.setdefault('data', {})['tools_ncc_operation'] = val
 
 	def on_toggle_all_rows(self):
 		"""
@@ -902,11 +913,16 @@ class NonCopperClear(AppTool, Gerber):
 			self.app.inform.emit('[ERROR_NOTCL] %s: %s' % (_("Object not found"), str(obj_name)))
 			return
 
+		ap_storage = getattr(fcobj, 'apertures', None)
+		if not ap_storage:
+			self.app.inform.emit(
+				'[WARNING_NOTCL] %s' %
+				_("Tool validity can be checked only for Gerber objects with aperture geometry.")
+			)
+			return
+
 		def job_thread(app_obj):
 			with self.app.proc_container.new(_("Checking ...")):
-
-				ap_storage = fcobj.apertures
-
 				p = app_obj.pool.apply_async(self.find_optim_mp, args=(ap_storage, self.decimals))
 				res = p.get()
 
@@ -971,6 +987,14 @@ class NonCopperClear(AppTool, Gerber):
 			self.app.inform.emit('[ERROR_NOTCL] %s: %s' % (_("Object not found"), str(obj_name)))
 			return
 
+		ap_storage = getattr(fcobj, 'apertures', None)
+		if not ap_storage:
+			self.app.inform.emit(
+				'[WARNING_NOTCL] %s' %
+				_("Optimal tool diameter can be calculated only for Gerber objects with aperture geometry.")
+			)
+			return
+
 		def job_thread(app_obj):
 			with self.app.proc_container.new(_("Checking ...")):
 				try:
@@ -979,9 +1003,9 @@ class NonCopperClear(AppTool, Gerber):
 					app_obj.proc_container.update_view_text(' %d%%' % 0)
 					total_geo = []
 
-					for ap in list(fcobj.apertures.keys()):
-						if 'geometry' in fcobj.apertures[ap]:
-							for geo_el in fcobj.apertures[ap]['geometry']:
+					for ap in list(ap_storage.keys()):
+						if 'geometry' in ap_storage[ap]:
+							for geo_el in ap_storage[ap]['geometry']:
 								if self.app.abort_flag:
 									# graceful abort requested by the user
 									raise grace
@@ -1387,7 +1411,7 @@ class NonCopperClear(AppTool, Gerber):
 
 		self.sel_rect = []
 
-		obj_type = self.ui.type_obj_radio.get_value
+		obj_type = self.ui.type_obj_radio.get_value()
 		self.circle_steps = int(self.app.defaults["gerber_circle_steps"]) if obj_type == 'gerber' else \
 			int(self.app.defaults["geometry_circle_steps"])
 		self.obj_name = self.ui.object_combo.currentText()

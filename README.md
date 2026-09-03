@@ -1,4 +1,4 @@
-# FlatCAM 2026.09 — ndrco edition
+# FlatCAM 2026.09.1 — ndrco edition
 
 ![FlatCAM β](/FlatCAM/assets/resources/flatcam_icon128.png)
 
@@ -21,12 +21,19 @@ The recommended Linux package is the x86_64 AppImage from the
 [latest release](https://github.com/ndrco/FlatCAM/releases/latest).
 
 ```sh
-chmod +x flatcam-2026.09-x86_64.AppImage
-./flatcam-2026.09-x86_64.AppImage
+chmod +x flatcam-2026.09.1-x86_64.AppImage
+./flatcam-2026.09.1-x86_64.AppImage
 ```
 
 The AppImage is self-contained and stores user preferences in `~/.FlatCAM`.
 No system-wide Python installation is required.
+
+## Changes in 2026.09.1
+
+* Fixed a crash in Non-Copper Clearing when tool validity was enabled for a
+  Geometry object.
+* Prevented an empty or rebuilt NCC tool table from aborting the application
+  when the operation selector changed.
 
 ## Changes in 2026.09
 
@@ -52,7 +59,7 @@ No system-wide Python installation is required.
 
 ## Linux AppImage installation
 
-Download `flatcam-2026.09-x86_64.AppImage` from this repository's
+Download `flatcam-2026.09.1-x86_64.AppImage` from this repository's
 [Releases page](https://github.com/ndrco/FlatCAM/releases), make it executable
 and run it. The release is built for x86_64 Linux and bundles Python 3.10 and
 the required Python packages.
