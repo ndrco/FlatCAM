@@ -2916,7 +2916,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 			self.options['startz'] = float(self.options['startz']) * factor
 
 		param_list = ['cutz', 'depthperpass', 'travelz', 'feedrate', 'feedrate_z', 'feedrate_rapid',
-					  'endz', 'toolchangez']
+					  'endz', 'toolchangez', 'tools_ncc_ramp_start_z', 'tools_ncc_ramp_length',
+					  'tools_ncc_ramp_overcut', 'tools_ncc_ramp_recovery_length', 'tools_ncc_ramp_feedrate']
 
 		if isinstance(self, GeometryObject):
 			temp_tools_dict = {}

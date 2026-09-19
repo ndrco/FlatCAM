@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QSettings
 
-from appGUI.GUIElements import RadioSet, FCDoubleSpinner, FCCheckBox, NumericalEvalTupleEntry, FCComboBox2
+from appGUI.GUIElements import RadioSet, FCDoubleSpinner, FCCheckBox, NumericalEvalTupleEntry, FCComboBox2, \
+	OptionalInputSection
 from appGUI.preferences.OptionsGroupUI import OptionsGroupUI
 
 import appTranslation as fcTranslate
@@ -275,10 +276,61 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 		grid0.addWidget(self.ncc_offset_label, 15, 0)
 		grid0.addWidget(self.ncc_offset_spinner, 15, 1)
 
+		# Tangential entry ramp
+		self.ncc_ramp_cb = FCCheckBox('%s' % _("Entry ramp"))
+		self.ncc_ramp_cb.setToolTip(
+			_("Enter each separate NCC path while moving horizontally.\n"
+			  "The tool touches at Start Z, ramps slightly below Cut Z,\n"
+			  "recovers to Cut Z, returns to the path start and cuts it again.\n"
+			  "Applied only to single-depth CNC jobs.")
+		)
+		grid0.addWidget(self.ncc_ramp_cb, 16, 0, 1, 2)
+
+		self.ncc_ramp_start_z_entry = FCDoubleSpinner()
+		self.ncc_ramp_start_z_entry.set_precision(self.decimals)
+		self.ncc_ramp_start_z_entry.set_range(-10000.0, 0.0)
+		self.ncc_ramp_start_z_entry.setSingleStep(0.01)
+		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Start Z")), 17, 0)
+		grid0.addWidget(self.ncc_ramp_start_z_entry, 17, 1)
+
+		self.ncc_ramp_length_entry = FCDoubleSpinner()
+		self.ncc_ramp_length_entry.set_precision(self.decimals)
+		self.ncc_ramp_length_entry.set_range(0.0001, 10000.0)
+		self.ncc_ramp_length_entry.setSingleStep(0.1)
+		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Ramp length")), 18, 0)
+		grid0.addWidget(self.ncc_ramp_length_entry, 18, 1)
+
+		self.ncc_ramp_overcut_entry = FCDoubleSpinner()
+		self.ncc_ramp_overcut_entry.set_precision(self.decimals)
+		self.ncc_ramp_overcut_entry.set_range(0.0, 10000.0)
+		self.ncc_ramp_overcut_entry.setSingleStep(0.01)
+		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Extra depth")), 19, 0)
+		grid0.addWidget(self.ncc_ramp_overcut_entry, 19, 1)
+
+		self.ncc_ramp_recovery_length_entry = FCDoubleSpinner()
+		self.ncc_ramp_recovery_length_entry.set_precision(self.decimals)
+		self.ncc_ramp_recovery_length_entry.set_range(0.0001, 10000.0)
+		self.ncc_ramp_recovery_length_entry.setSingleStep(0.1)
+		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Recovery length")), 20, 0)
+		grid0.addWidget(self.ncc_ramp_recovery_length_entry, 20, 1)
+
+		self.ncc_ramp_feedrate_entry = FCDoubleSpinner()
+		self.ncc_ramp_feedrate_entry.set_precision(self.decimals)
+		self.ncc_ramp_feedrate_entry.set_range(0.0001, 100000.0)
+		self.ncc_ramp_feedrate_entry.setSingleStep(10.0)
+		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Ramp feedrate")), 21, 0)
+		grid0.addWidget(self.ncc_ramp_feedrate_entry, 21, 1)
+
+		self.ois_ncc_ramp = OptionalInputSection(
+			self.ncc_ramp_cb,
+			[self.ncc_ramp_start_z_entry, self.ncc_ramp_length_entry, self.ncc_ramp_overcut_entry,
+			 self.ncc_ramp_recovery_length_entry, self.ncc_ramp_feedrate_entry]
+		)
+
 		separator_line = QtWidgets.QFrame()
 		separator_line.setFrameShape(QtWidgets.QFrame.HLine)
 		separator_line.setFrameShadow(QtWidgets.QFrame.Sunken)
-		grid0.addWidget(separator_line, 16, 0, 1, 2)
+		grid0.addWidget(separator_line, 22, 0, 1, 2)
 
 		# Rest machining CheckBox
 		self.ncc_rest_cb = FCCheckBox('%s' % _("Rest"))
@@ -292,7 +344,7 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 			  "If not checked, use the standard algorithm.")
 		)
 
-		grid0.addWidget(self.ncc_rest_cb, 17, 0, 1, 2)
+		grid0.addWidget(self.ncc_rest_cb, 23, 0, 1, 2)
 
 		# ## Reference
 		# self.reference_radio = RadioSet([{'label': _('Itself'), 'value': 'itself'},
@@ -312,8 +364,8 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 			  "- 'Reference Object' - will process the area specified by another object.")
 		)
 
-		grid0.addWidget(select_label, 18, 0)
-		grid0.addWidget(self.select_combo, 18, 1)
+		grid0.addWidget(select_label, 24, 0)
+		grid0.addWidget(self.select_combo, 24, 1)
 
 		self.area_shape_label = QtWidgets.QLabel('%s:' % _("Shape"))
 		self.area_shape_label.setToolTip(
@@ -323,13 +375,13 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 		self.area_shape_radio = RadioSet([{'label': _("Square"), 'value': 'square'},
 										  {'label': _("Polygon"), 'value': 'polygon'}])
 
-		grid0.addWidget(self.area_shape_label, 19, 0)
-		grid0.addWidget(self.area_shape_radio, 19, 1)
+		grid0.addWidget(self.area_shape_label, 25, 0)
+		grid0.addWidget(self.area_shape_radio, 25, 1)
 
 		separator_line = QtWidgets.QFrame()
 		separator_line.setFrameShape(QtWidgets.QFrame.HLine)
 		separator_line.setFrameShadow(QtWidgets.QFrame.Sunken)
-		grid0.addWidget(separator_line, 20, 0, 1, 2)
+		grid0.addWidget(separator_line, 26, 0, 1, 2)
 
 		# ## Plotting type
 		self.plotting_radio = RadioSet([{'label': _('Normal'), 'value': 'normal'},
@@ -339,8 +391,8 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 			_("- 'Normal' - normal plotting, done at the end of the job\n"
 			  "- 'Progressive' - each shape is plotted after it is generated")
 		)
-		grid0.addWidget(plotting_label, 21, 0)
-		grid0.addWidget(self.plotting_radio, 21, 1)
+		grid0.addWidget(plotting_label, 27, 0)
+		grid0.addWidget(self.plotting_radio, 27, 1)
 
 		# Check Tool validity
 		self.valid_cb = FCCheckBox(label=_('Check validity'))
@@ -350,6 +402,6 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 		)
 		self.valid_cb.setObjectName("n_check")
 
-		grid0.addWidget(self.valid_cb, 23, 0, 1, 2)
+		grid0.addWidget(self.valid_cb, 29, 0, 1, 2)
 
 		self.layout.addStretch()

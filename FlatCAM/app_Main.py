@@ -129,7 +129,7 @@ class App(QtCore.QObject):
 	# ################################### Version and VERSION DATE ##################################################
 	# ###############################################################################################################
 	# version = "Unstable Version"
-	version = '2026.09.6'
+	version = '2026.09.7'
 	version_date = '2026/09/19'
 	# Preferences schema version. Keep it independent from the application
 	# release version so normal upgrades do not reset compatible user settings.
@@ -4400,7 +4400,8 @@ class App(QtCore.QObject):
 			
 			# NCC Tool
 			"tools_ncc_tools", "tools_ncc_margin", "tools_ncc_offset_value", "tools_ncc_cutz", "tools_ncc_tipdia",
-			"tools_ncc_newdia",
+			"tools_ncc_newdia", "tools_ncc_ramp_start_z", "tools_ncc_ramp_length", "tools_ncc_ramp_overcut",
+			"tools_ncc_ramp_recovery_length", "tools_ncc_ramp_feedrate",
 
 			# Cutout Tool
 			"tools_cutout_tooldia", 'tools_cutout_margin', "tools_cutout_z", "tools_cutout_depthperpass",

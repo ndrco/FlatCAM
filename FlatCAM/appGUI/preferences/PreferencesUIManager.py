@@ -409,6 +409,13 @@ class PreferencesUIManager:
 			"tools_ncc_rest":            self.ui.tools_defaults_form.tools_ncc_group.ncc_rest_cb,
 			"tools_ncc_offset_choice":  self.ui.tools_defaults_form.tools_ncc_group.ncc_choice_offset_cb,
 			"tools_ncc_offset_value":   self.ui.tools_defaults_form.tools_ncc_group.ncc_offset_spinner,
+			"tools_ncc_ramp":           self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_cb,
+			"tools_ncc_ramp_start_z":   self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_start_z_entry,
+			"tools_ncc_ramp_length":    self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_length_entry,
+			"tools_ncc_ramp_overcut":   self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_overcut_entry,
+			"tools_ncc_ramp_recovery_length": \
+				self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_recovery_length_entry,
+			"tools_ncc_ramp_feedrate":  self.ui.tools_defaults_form.tools_ncc_group.ncc_ramp_feedrate_entry,
 			"tools_ncc_ref":             self.ui.tools_defaults_form.tools_ncc_group.select_combo,
 			"tools_ncc_area_shape":     self.ui.tools_defaults_form.tools_ncc_group.area_shape_radio,
 			"tools_ncc_milling_type":    self.ui.tools_defaults_form.tools_ncc_group.milling_type_radio,

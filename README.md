@@ -1,4 +1,4 @@
-# FlatCAM 2026.09.6 — ndrco edition
+# FlatCAM 2026.09.7 — ndrco edition
 
 ![FlatCAM β](/FlatCAM/assets/resources/flatcam_icon128.png)
 
@@ -21,12 +21,31 @@ The recommended Linux package is the x86_64 AppImage from the
 [latest release](https://github.com/ndrco/FlatCAM/releases/latest).
 
 ```sh
-chmod +x flatcam-2026.09.6-x86_64.AppImage
-./flatcam-2026.09.6-x86_64.AppImage
+chmod +x flatcam-2026.09.7-x86_64.AppImage
+./flatcam-2026.09.7-x86_64.AppImage
 ```
 
 The AppImage is self-contained and stores user preferences in `~/.FlatCAM`.
 No system-wide Python installation is required.
+
+## Changes in 2026.09.7
+
+* Added an optional `Entry ramp` for every separate NCC toolpath. It touches
+  the surface, enters while moving horizontally, goes slightly below `Cut Z`,
+  recovers to `Cut Z`, returns to the start and cuts the beginning again at
+  working depth.
+* The NCC Tool exposes `Start Z`, `Ramp length`, `Extra depth`,
+  `Recovery length` and `Ramp feedrate`. The defaults match a shallow PCB
+  milling entry: `-0.03`, `0.7`, `0.02`, `0.5` mm and `150 mm/min`.
+* Short contours scale both entry phases proportionally. Unsupported
+  preprocessors and G91 output safely fall back to the normal vertical plunge
+  with a warning. Entry ramp is currently limited to single-depth jobs.
+* Fixed a native PyQt/SIP crash when closing FlatCAM by stopping the argument
+  listener, workers and multiprocessing pool before terminating Qt.
+
+Enable `Entry ramp` in NCC Tool for the selected cutter, then generate the NCC
+Geometry and CNCJob again. Existing Geometry, CNCJob and exported G-code files
+are not modified automatically.
 
 ## Changes in 2026.09.6
 
@@ -117,7 +136,7 @@ objects. Previously generated toolpaths are not updated automatically.
 
 ## Linux AppImage installation
 
-Download `flatcam-2026.09.6-x86_64.AppImage` from this repository's
+Download `flatcam-2026.09.7-x86_64.AppImage` from this repository's
 [Releases page](https://github.com/ndrco/FlatCAM/releases), make it executable
 and run it. The release is built for x86_64 Linux and bundles Python 3.10 and
 the required Python packages.

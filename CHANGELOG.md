@@ -8,12 +8,18 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
-19.09.2026 - ndrco (unreleased)
+19.09.2026 - ndrco 2026.09.7
 
 - fixed a PyQt/SIP segmentation fault during application shutdown
 - stopped and joined the argument listener, Qt workers and multiprocessing pool before exit
 - prevented repeated shutdown handling from nested Qt close events
 - added clean-shutdown regression tests, including waking a listener blocked in accept()
+- added an optional tangential entry ramp for every separate NCC toolpath
+- added configurable touch Z, ramp length, extra depth, recovery length and ramp feed rate
+- made the entry recover to Cut Z, return to the start and recut the beginning at working depth
+- scaled both ramp phases on short contours and safely fell back to a vertical plunge for unsupported preprocessors
+- preserved NCC ramp parameters through preferences, tool data and metric/imperial conversion
+- added regression tests for the generated ramp sequence, short paths and preprocessor fallback
 
 19.09.2026 - ndrco 2026.09.6
 

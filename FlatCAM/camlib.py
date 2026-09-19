@@ -2702,6 +2702,16 @@ class CNCjob(Geometry):
 		self.extracut = False
 		self.extracut_length = None
 
+		# Optional tangential entry used by NCC-generated Geometry tools.
+		self.entry_ramp_enabled = False
+		self.entry_ramp_start_z = -0.03
+		self.entry_ramp_length = 0.7
+		self.entry_ramp_overcut = 0.02
+		self.entry_ramp_recovery_length = 0.5
+		self.entry_ramp_feedrate = 150.0
+		self._entry_ramp_warned = False
+		self._last_entry_ramp_distance = 0.0
+
 		self.tolerance = self.drawing_tolerance
 
 		# used by the self.generate_from_excellon_by_tool() method
@@ -3594,6 +3604,21 @@ class CNCjob(Geometry):
 		self.z_feedrate = float(tool_dict['feedrate_z'])
 		self.feedrate_rapid = float(tool_dict['feedrate_rapid'])
 
+		self.entry_ramp_enabled = bool(tool_dict.get('tools_ncc_ramp', False))
+		self.entry_ramp_start_z = float(tool_dict.get('tools_ncc_ramp_start_z', -0.03))
+		self.entry_ramp_length = float(tool_dict.get('tools_ncc_ramp_length', 0.7))
+		self.entry_ramp_overcut = abs(float(tool_dict.get('tools_ncc_ramp_overcut', 0.02)))
+		self.entry_ramp_recovery_length = float(
+			tool_dict.get('tools_ncc_ramp_recovery_length', 0.5)
+		)
+		self.entry_ramp_feedrate = float(tool_dict.get('tools_ncc_ramp_feedrate', self.feedrate))
+		self._entry_ramp_warned = False
+		if self.entry_ramp_enabled and self.multidepth:
+			self.entry_ramp_enabled = False
+			self.app.inform.emit(
+				'[WARNING_NOTCL] %s' % _("NCC entry ramp is disabled for multi-depth CNC jobs.")
+			)
+
 		self.spindlespeed = float(tool_dict['spindlespeed'])
 		try:
 			self.spindledir = tool_dict['spindledir']
@@ -3776,9 +3801,11 @@ class CNCjob(Geometry):
 				# calculate the cut distance
 				total_cut = total_cut + geo.length
 
+				self._last_entry_ramp_distance = 0.0
 				t_gcode += self.create_gcode_single_pass(geo, current_tooldia, self.extracut,
-														 self.extracut_length, self.tolerance,
-														 z_move=self.z_move, old_point=current_pt)
+													 self.extracut_length, self.tolerance,
+													 z_move=self.z_move, old_point=current_pt)
+				total_cut += self._last_entry_ramp_distance
 
 			# --------- Multi-pass ---------
 			else:
@@ -6963,6 +6990,129 @@ class CNCjob(Geometry):
 
 		return path
 
+	@staticmethod
+	def _entry_ramp_profile(linear, ramp_length, recovery_length, start_z, deep_z, cut_z):
+		"""Build distance, XY and Z samples for a tangential NCC entry."""
+		path_length = float(linear.length)
+		ramp_length = float(ramp_length)
+		recovery_length = float(recovery_length)
+		requested_length = ramp_length + recovery_length
+		if path_length <= 1e-12 or ramp_length <= 0.0 or recovery_length <= 0.0 or requested_length <= 0.0:
+			return [], 0.0, 0.0
+
+		# Short contours retain both phases by scaling them proportionally.
+		actual_length = min(path_length, requested_length)
+		deepest_distance = actual_length * ramp_length / requested_length
+
+		distances = [0.0, deepest_distance, actual_length]
+		walked = 0.0
+		coords = list(linear.coords)
+		for index in range(1, len(coords)):
+			walked += distance(coords[index - 1], coords[index])
+			if 1e-12 < walked < actual_length - 1e-12:
+				distances.append(walked)
+
+		unique_distances = []
+		for value in sorted(distances):
+			if not unique_distances or abs(value - unique_distances[-1]) > 1e-12:
+				unique_distances.append(value)
+
+		profile = []
+		for value in unique_distances:
+			point = linear.interpolate(value)
+			if value <= deepest_distance:
+				ratio = value / deepest_distance if deepest_distance else 1.0
+				z_value = start_z + ((deep_z - start_z) * ratio)
+			else:
+				recovery_distance = actual_length - deepest_distance
+				ratio = (value - deepest_distance) / recovery_distance if recovery_distance else 1.0
+				z_value = deep_z + ((cut_z - deep_z) * ratio)
+			profile.append((value, point.x, point.y, z_value))
+
+		return profile, deepest_distance, actual_length
+
+	def _linear_move_with_z(self, p, x, y, z, feedrate):
+		"""Return a standard G-code linear move with an explicit Z, or None if unsupported."""
+		line = self.doformat2(p.linear_code, x=x, y=y, z=z, z_cut=z, feedrate=feedrate)
+		if not line or '\n' in line.strip() or re.match(r'^\s*G0?1(?:\s|$)', line, flags=re.IGNORECASE) is None:
+			return None
+
+		precision = int(self.app.defaults.get("cncjob_coords_decimals", self.decimals))
+		z_word = 'Z%.*f' % (precision, z)
+		comment_positions = [pos for pos in (line.find(';'), line.find('(')) if pos >= 0]
+		comment_pos = min(comment_positions) if comment_positions else len(line)
+		code = line[:comment_pos].rstrip()
+		comment = line[comment_pos:]
+		z_pattern = re.compile(r'(?<![A-Z])Z\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)', re.IGNORECASE)
+		if z_pattern.search(code):
+			code = z_pattern.sub(z_word, code, count=1)
+		else:
+			code += ' ' + z_word
+		return code + ((' ' + comment) if comment else '') + '\n'
+
+	def _warn_entry_ramp_fallback(self):
+		if not self._entry_ramp_warned:
+			self.app.inform.emit(
+				'[WARNING_NOTCL] %s' %
+				_("The selected preprocessor or G91 coordinates do not support the NCC entry ramp. "
+				  "A normal vertical plunge will be used.")
+			)
+			self._entry_ramp_warned = True
+		self.entry_ramp_enabled = False
+
+	def _entry_ramp_gcode(self, target_linear, p, first_x, first_y, z_cut, feedrate):
+		"""Generate touch, forward ramp, recovery and the return to the path start."""
+		self._last_entry_ramp_distance = 0.0
+		if not self.entry_ramp_enabled:
+			return None
+		if self.coordinates_type != "G90" or z_cut >= 0.0:
+			self._warn_entry_ramp_fallback()
+			return None
+
+		touch_z = min(0.0, max(z_cut, float(self.entry_ramp_start_z)))
+		deep_z = z_cut - abs(float(self.entry_ramp_overcut))
+		profile, deepest_distance, actual_length = self._entry_ramp_profile(
+			target_linear,
+			self.entry_ramp_length,
+			self.entry_ramp_recovery_length,
+			touch_z,
+			deep_z,
+			z_cut
+		)
+		if len(profile) < 3 or actual_length <= 1e-12:
+			return None
+
+		ramp_feedrate = self.entry_ramp_feedrate if self.entry_ramp_feedrate > 0.0 else feedrate
+		ramp_moves = []
+		recovery_moves = []
+		for path_distance, x_pos, y_pos, z_pos in profile[1:]:
+			move = self._linear_move_with_z(p, x_pos, y_pos, z_pos, ramp_feedrate)
+			if move is None:
+				self._warn_entry_ramp_fallback()
+				return None
+			if path_distance <= deepest_distance + 1e-12:
+				ramp_moves.append(move)
+			else:
+				recovery_moves.append(move)
+
+		return_moves = []
+		for _path_distance, x_pos, y_pos, _z_pos in reversed(profile[:-1]):
+			move = self._linear_move_with_z(p, x_pos, y_pos, z_cut, feedrate)
+			if move is None:
+				self._warn_entry_ramp_fallback()
+				return None
+			return_moves.append(move)
+
+		gcode = self.doformat(p.z_feedrate_code)
+		gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=touch_z)
+		gcode += self.doformat(p.feedrate_code, feedrate=ramp_feedrate)
+		gcode += ''.join(ramp_moves)
+		gcode += self.doformat(p.feedrate_code, feedrate=feedrate)
+		gcode += ''.join(recovery_moves)
+		gcode += ''.join(return_moves)
+		self._last_entry_ramp_distance = actual_length * 2.0
+		return gcode
+
 	def linear2gcode(self, linear, dia, tolerance=0, down=True, up=True, z_cut=None, z_move=None, zdownrate=None,
 					 feedrate=None, feedrate_z=None, feedrate_rapid=None, cont=False, old_point=(0, 0)):
 		"""
@@ -7071,11 +7221,16 @@ class CNCjob(Geometry):
 
 		# Move down to cutting depth
 		if down:
-			# Different feedrate for vertical cut?
-			gcode += self.doformat(p.z_feedrate_code)
-			# gcode += self.doformat(p.feedrate_code)
-			gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)
-			gcode += self.doformat(p.feedrate_code, feedrate=feedrate)
+			ramp_gcode = self._entry_ramp_gcode(
+				target_linear, p, first_x, first_y, z_cut, feedrate
+			)
+			if ramp_gcode is not None:
+				gcode += ramp_gcode
+			else:
+				# Different feedrate for vertical cut?
+				gcode += self.doformat(p.z_feedrate_code)
+				gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)
+				gcode += self.doformat(p.feedrate_code, feedrate=feedrate)
 
 		# Cutting...
 		prev_x = first_x
@@ -7215,14 +7370,19 @@ class CNCjob(Geometry):
 
 		# Move down to cutting depth
 		if down:
-			# Different feedrate for vertical cut?
-			if self.z_feedrate is not None:
-				gcode += self.doformat(p.z_feedrate_code)
-				# gcode += self.doformat(p.feedrate_code)
-				gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)
-				gcode += self.doformat(p.feedrate_code, feedrate=feedrate)
+			ramp_gcode = self._entry_ramp_gcode(
+				target_linear, p, first_x, first_y, z_cut, feedrate
+			)
+			if ramp_gcode is not None:
+				gcode += ramp_gcode
 			else:
-				gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)  # Start cutting
+				# Different feedrate for vertical cut?
+				if self.z_feedrate is not None:
+					gcode += self.doformat(p.z_feedrate_code)
+					gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)
+					gcode += self.doformat(p.feedrate_code, feedrate=feedrate)
+				else:
+					gcode += self.doformat(p.down_code, x=first_x, y=first_y, z_cut=z_cut)
 
 		# Cutting...
 		prev_x = first_x

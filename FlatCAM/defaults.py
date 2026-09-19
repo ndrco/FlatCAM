@@ -476,6 +476,12 @@ class FlatCAMDefaults:
 		"tools_ncc_rest": False,
 		"tools_ncc_offset_choice": False,
 		"tools_ncc_offset_value": 0.0000,
+		"tools_ncc_ramp": False,
+		"tools_ncc_ramp_start_z": -0.03,
+		"tools_ncc_ramp_length": 0.7,
+		"tools_ncc_ramp_overcut": 0.02,
+		"tools_ncc_ramp_recovery_length": 0.5,
+		"tools_ncc_ramp_feedrate": 150.0,
 		"tools_ncc_ref": 0,     # ITSELF
 		"tools_ncc_area_shape": "square",
 		"tools_ncc_milling_type": 'cl',
