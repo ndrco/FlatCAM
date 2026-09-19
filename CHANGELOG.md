@@ -8,6 +8,14 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco 2026.09.6
+
+- made Thin cutout gaps use the selected physical tool instead of synthetic tool 9999
+- kept full-depth contours and shallow bridge cuts as separate operations without a second tool change
+- added automatic migration for legacy Thin cutout geometry containing tool 9999
+- kept shallow bridge geometry synchronized through plotting and geometry transformations
+- added regression tests for tool identity, gap depth, tool-change count and legacy migration
+
 19.09.2026 - ndrco 2026.09.5
 
 - added bounded Undo/Redo history to the Geometry Editor

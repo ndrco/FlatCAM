@@ -16,6 +16,7 @@ from shapely.ops import unary_union
 
 # Importing the tool package also loads app_Main, which parses command-line args.
 with patch.object(sys, 'argv', [sys.argv[0]]):
+    from appObjects.FlatCAMGeometry import GeometryObject
     from appTools.ToolCutOut import CutOut
     from appTools.ToolNCC import NonCopperClear
     from camlib import Geometry
@@ -179,6 +180,68 @@ class GeometryTransformNCCTest(unittest.TestCase):
         fallback_slot = Polygon(next(path for path, internal in too_large_paths if internal))
         self.assertTrue(fallback_slot.contains(Point(20, 5)))
         self.assertLess(fallback_slot.area, slot_cut.area)
+
+    def test_thin_gap_uses_the_same_physical_tool_without_second_toolchange(self):
+        main_geometry = [LineString([(0, 0), (10, 0)])]
+        gap_geometry = [LineString([(10, 0), (12, 0)])]
+        tool = {
+            'tooldia': 3.175,
+            'data': {'cutz': -2.0, 'multidepth': True, 'depthperpass': 0.5},
+            'solid_geometry': main_geometry
+        }
+        CutOut._set_thin_gap_operation(
+            tool, gap_geometry, cutz=-0.4, multidepth=False, depthperpass=0.5
+        )
+
+        class RecordingJob:
+            def __init__(self):
+                self.calls = []
+
+            def geometry_tool_gcode_gen(self, tool_number, tools, **kwargs):
+                self.calls.append((tool_number, tools, kwargs))
+                toolchange = 'T%d\n' % tool_number if kwargs['toolchange'] else ''
+                return toolchange + 'Z%s\n' % tools[tool_number]['data']['cutz'], \
+                    'START\n' if kwargs['is_first'] else ''
+
+        job = RecordingJob()
+        gcode, start_gcode, geometry = GeometryObject._generate_tool_cut_operations(
+            job_obj=job, tooluid=1, tool=tool, tolerance=0.001,
+            is_first_tool=True, is_last_tool=True
+        )
+
+        self.assertEqual(len(job.calls), 2)
+        self.assertEqual([call[0] for call in job.calls], [1, 1])
+        self.assertEqual([call[2]['toolchange'] for call in job.calls], [True, False])
+        self.assertEqual([call[1][1]['data']['cutz'] for call in job.calls], [-2.0, -0.4])
+        self.assertTrue(job.calls[0][2]['is_first'])
+        self.assertTrue(job.calls[1][2]['is_last'])
+        self.assertEqual(start_gcode, 'START\n')
+        self.assertEqual(len(geometry), 2)
+        self.assertEqual(gcode.count('T1'), 1)
+        self.assertNotIn('9999', gcode)
+
+    def test_legacy_thin_gap_tool_is_migrated_to_one_tool(self):
+        obj = GeometryObject.__new__(GeometryObject)
+        obj.tools = {
+            1: {
+                'tooldia': 3.175,
+                'data': {'cutz': -2.0},
+                'solid_geometry': [LineString([(0, 0), (10, 0)])]
+            },
+            9999: {
+                'tooldia': 3.175,
+                'data': {'cutz': -0.4, 'override_color': '#29a3a3fa'},
+                'solid_geometry': [LineString([(10, 0), (12, 0)])]
+            }
+        }
+
+        obj._migrate_legacy_thin_gap_tool()
+
+        self.assertEqual(list(obj.tools), [1])
+        operation = obj.tools[1]['extra_cut_operations'][0]
+        self.assertEqual(operation['kind'], 'thin_gap')
+        self.assertEqual(operation['data']['cutz'], -0.4)
+        self.assertEqual(operation['plot_color'], '#29a3a3fa')
 
 
 if __name__ == '__main__':

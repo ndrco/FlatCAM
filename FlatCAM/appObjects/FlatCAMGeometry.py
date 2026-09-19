@@ -553,6 +553,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 			self.tools.clear()
 			self.tools = deepcopy(temp_tools)
 
+		self._migrate_legacy_thin_gap_tool()
+
 		self.ui.tool_offset_entry.hide()
 		self.ui.tool_offset_lbl.hide()
 
@@ -2024,6 +2026,72 @@ class GeometryObject(FlatCAMObj, Geometry):
 		else:
 			self.app.inform.emit('[ERROR_NOTCL] %s' % _("Failed. No tool selected in the tool table ..."))
 
+	@staticmethod
+	def _tool_cut_operations(tooluid, tool):
+		"""Return all machining operations while keeping one physical tool number."""
+		base_tool = deepcopy(tool)
+		extra_operations = base_tool.pop('extra_cut_operations', [])
+		operations = [{tooluid: base_tool}]
+
+		for operation in extra_operations:
+			if not operation.get('solid_geometry'):
+				continue
+
+			operation_tool = deepcopy(base_tool)
+			operation_tool['solid_geometry'] = deepcopy(operation['solid_geometry'])
+			operation_tool['data'].update(deepcopy(operation.get('data', {})))
+			operations.append({tooluid: operation_tool})
+
+		return operations
+
+	@classmethod
+	def _generate_tool_cut_operations(cls, job_obj, tooluid, tool, tolerance, is_first_tool, is_last_tool):
+		"""Generate one G-Code stream for all operations of a physical tool."""
+		cut_operations = cls._tool_cut_operations(tooluid, tool)
+		tool_gcode = ''
+		start_gcode = ''
+		operation_geometry = []
+
+		for operation_index, operation_tools in enumerate(cut_operations):
+			res, operation_start_gcode = job_obj.geometry_tool_gcode_gen(
+				tooluid, operation_tools, first_pt=(0, 0), tolerance=tolerance,
+				is_first=is_first_tool and operation_index == 0,
+				is_last=is_last_tool and operation_index == len(cut_operations) - 1,
+				toolchange=operation_index == 0
+			)
+			if res == 'fail':
+				return 'fail', '', []
+
+			tool_gcode += res
+			operation_geometry.append(operation_tools[tooluid]['solid_geometry'])
+			if operation_start_gcode:
+				start_gcode = operation_start_gcode
+
+		return tool_gcode, start_gcode, operation_geometry
+
+	def _migrate_legacy_thin_gap_tool(self):
+		"""Fold the old synthetic tool 9999 into tool 1 when loading a project."""
+		primary_tool = self.tools.get(1)
+		legacy_tool = self.tools.get(9999)
+		if primary_tool is None or legacy_tool is None:
+			return
+
+		legacy_data = legacy_tool.get('data', {})
+		if legacy_data.get('override_color') != '#29a3a3fa':
+			return
+		if float(primary_tool.get('tooldia', 0)) != float(legacy_tool.get('tooldia', -1)):
+			return
+
+		operation_data = deepcopy(legacy_data)
+		operation_data.pop('override_color', None)
+		primary_tool.setdefault('extra_cut_operations', []).append({
+			'kind': 'thin_gap',
+			'solid_geometry': deepcopy(legacy_tool.get('solid_geometry', [])),
+			'data': operation_data,
+			'plot_color': '#29a3a3fa'
+		})
+		del self.tools[9999]
+
 	def mtool_gen_cncjob(self, outname=None, tools_dict=None, tools_in_use=None, segx=None, segy=None,
 						 plot=True, use_thread=True):
 		"""
@@ -2255,7 +2323,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 					return 'fail'
 
 			total_gcode = ''
-			for tooluid_key in list(tools_dict.keys()):
+			tool_keys = list(tools_dict.keys())
+			for tool_index, tooluid_key in enumerate(tool_keys):
 				tool_cnt += 1
 				dia_cnc_dict = deepcopy(tools_dict[tooluid_key])
 				tooldia_val = app_obj.dec_format(float(tools_dict[tooluid_key]['tooldia']), self.decimals)
@@ -2327,22 +2396,24 @@ class GeometryObject(FlatCAMObj, Geometry):
 				# to a value of 0.0005 which is 20 times less than 0.01
 				tol = float(self.app.defaults['global_tolerance']) / 20
 
-				tool_lst = list(tools_dict.keys())
-				is_first = True if tooluid_key == tool_lst[0] else False
-				is_last = True if tooluid_key == tool_lst[-1] else False
-				res, start_gcode = job_obj.geometry_tool_gcode_gen(tooluid_key, tools_dict, first_pt=(0, 0),
-																   tolerance=tol,
-																   is_first=is_first, is_last=is_last,
-																   toolchange=True)
-				if res == 'fail':
+				tool_gcode, start_gcode, operation_geometry = self._generate_tool_cut_operations(
+					job_obj=job_obj,
+					tooluid=tooluid_key,
+					tool=tools_dict[tooluid_key],
+					tolerance=tol,
+					is_first_tool=tool_index == 0,
+					is_last_tool=tool_index == len(tool_keys) - 1
+				)
+				if tool_gcode == 'fail':
 					log.debug("GeometryObject.mtool_gen_cncjob() --> generate_from_geometry2() failed")
 					return 'fail'
-				else:
-					dia_cnc_dict['gcode'] = res
-				total_gcode += res
 
 				if start_gcode != '':
 					job_obj.gc_start = start_gcode
+
+				dia_cnc_dict['gcode'] = tool_gcode
+				total_gcode += tool_gcode
+				job_obj.gcode = tool_gcode
 
 				app_obj.inform.emit('[success] %s' % _("G-Code parsing in progress..."))
 				dia_cnc_dict['gcode_parsed'] = job_obj.gcode_parse()
@@ -2354,7 +2425,7 @@ class GeometryObject(FlatCAMObj, Geometry):
 				#     geo['geom'] for geo in dia_cnc_dict['gcode_parsed'] if geo['geom'].is_valid is True
 				# ])
 				try:
-					dia_cnc_dict['solid_geometry'] = deepcopy(tool_solid_geometry)
+					dia_cnc_dict['solid_geometry'] = deepcopy(operation_geometry)
 					app_obj.inform.emit('[success] %s...' % _("Finished G-Code processing"))
 				except Exception as ee:
 					app_obj.inform.emit('[ERROR] %s: %s' % (_("G-Code processing failed with error"), str(ee)))
@@ -2709,6 +2780,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 				self.el_count = 0
 
 				self.tools[tool]['solid_geometry'] = scale_recursion(self.tools[tool]['solid_geometry'])
+				for operation in self.tools[tool].get('extra_cut_operations', []):
+					operation['solid_geometry'] = scale_recursion(operation.get('solid_geometry', []))
 
 		try:
 			# variables to display the percentage of work done
@@ -2785,6 +2858,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 				self.el_count = 0
 
 				self.tools[tool]['solid_geometry'] = translate_recursion(self.tools[tool]['solid_geometry'])
+				for operation in self.tools[tool].get('extra_cut_operations', []):
+					operation['solid_geometry'] = translate_recursion(operation.get('solid_geometry', []))
 
 		# variables to display the percentage of work done
 		self.geo_len = 0
@@ -2882,6 +2957,16 @@ class GeometryObject(FlatCAMObj, Geometry):
 						tool_dia_copy[dia_key] = dia_value
 					if dia_key == 'tool_type':
 						tool_dia_copy[dia_key] = dia_value
+					if dia_key == 'solid_geometry':
+						tool_dia_copy[dia_key] = deepcopy(dia_value)
+					if dia_key == 'extra_cut_operations':
+						operations_copy = deepcopy(dia_value)
+						for operation in operations_copy:
+							for param in param_list:
+								value = operation.get('data', {}).get(param)
+								if value is not None:
+									operation['data'][param] = value * factor
+						tool_dia_copy[dia_key] = operations_copy
 					if dia_key == 'data':
 						for data_key, data_value in dia_value.items():
 							# convert the form fields that are convertible
@@ -3066,6 +3151,11 @@ class GeometryObject(FlatCAMObj, Geometry):
 								self.app.defaults["geometry_plot_line"]
 
 						self.plot_element(solid_geometry, visible=visible, color=color)
+						for operation in self.tools[tooluid_key].get('extra_cut_operations', []):
+							operation_color = operation.get('plot_color', color)
+							self.plot_element(
+								operation.get('solid_geometry', []), visible=visible, color=operation_color
+							)
 				else:
 					solid_geometry = self.tools[plot_tool]['solid_geometry']
 					if 'override_color' in self.tools[plot_tool]['data']:
@@ -3075,6 +3165,11 @@ class GeometryObject(FlatCAMObj, Geometry):
 							self.app.defaults["geometry_plot_line"]
 
 					self.plot_element(solid_geometry, visible=visible, color=color)
+					for operation in self.tools[plot_tool].get('extra_cut_operations', []):
+						operation_color = operation.get('plot_color', color)
+						self.plot_element(
+							operation.get('solid_geometry', []), visible=visible, color=operation_color
+						)
 			else:
 				# plot solid geometry that may be an direct attribute of the geometry object
 				# for SingleGeo
@@ -3132,7 +3227,14 @@ class GeometryObject(FlatCAMObj, Geometry):
 					color = self.tools[tooluid_key]['data']['override_color']
 					self.plot_element(element=solid_geometry, visible=True, color=color)
 				except KeyError:
+					color = None
 					self.plot_element(element=solid_geometry, visible=True)
+
+				for operation in self.tools[tooluid_key].get('extra_cut_operations', []):
+					self.plot_element(
+						element=operation.get('solid_geometry', []), visible=True,
+						color=operation.get('plot_color', color)
+					)
 		self.shapes.redraw()
 
 		# make sure that the general plot is disabled if one of the row plot's are disabled and

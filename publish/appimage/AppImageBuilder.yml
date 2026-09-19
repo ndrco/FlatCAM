@@ -16,7 +16,7 @@ AppDir:
     id: org.flatcam.FlatCAM
     name: flatcam
     icon: flatcam_icon256
-    version: '2026.09.5'
+    version: '2026.09.6'
     # Set the python executable as entry point
     exec: usr/bin/python3
     # Set the application main script path as argument. Use '$@' to forward CLI parameters

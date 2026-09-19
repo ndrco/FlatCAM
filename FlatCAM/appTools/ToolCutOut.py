@@ -39,6 +39,45 @@ else:
 
 
 class CutOut(AppTool):
+	THIN_GAP_OPERATION = 'thin_gap'
+	THIN_GAP_COLOR = "#29a3a3fa"
+
+	@staticmethod
+	def _set_thin_gap_operation(tool, geometry, cutz, multidepth, depthperpass, append=False):
+		"""Store a shallow bridge cut as another operation of the same physical tool."""
+		if not geometry:
+			return
+
+		operations = tool.setdefault('extra_cut_operations', [])
+		operation = next(
+			(op for op in operations if op.get('kind') == CutOut.THIN_GAP_OPERATION),
+			None
+		)
+
+		if operation is None:
+			operation = {
+				'kind': CutOut.THIN_GAP_OPERATION,
+				'solid_geometry': [],
+				'data': {},
+				'plot_color': CutOut.THIN_GAP_COLOR
+			}
+			operations.append(operation)
+
+		if append:
+			if not isinstance(operation['solid_geometry'], list):
+				operation['solid_geometry'] = [operation['solid_geometry']]
+			if isinstance(geometry, list):
+				operation['solid_geometry'].extend(deepcopy(geometry))
+			else:
+				operation['solid_geometry'].append(deepcopy(geometry))
+		else:
+			operation['solid_geometry'] = deepcopy(geometry)
+
+		operation['data'].update({
+			'cutz': cutz,
+			'multidepth': multidepth,
+			'depthperpass': depthperpass
+		})
 
 	def __init__(self, app):
 		AppTool.__init__(self, app)
@@ -890,19 +929,13 @@ class CutOut(AppTool):
 					geo_obj.tools[1]['data']['multidepth'] = self.ui.mpass_cb.get_value()
 					geo_obj.tools[1]['data']['depthperpass'] = self.ui.maxdepth_entry.get_value()
 
-					if not gaps_solid_geo:
-						pass
-					else:
-						geo_obj.tools[9999] = deepcopy(self.cut_tool_dict)
-						geo_obj.tools[9999]['tooldia'] = str(dia)
-						geo_obj.tools[9999]['solid_geometry'] = gaps_solid_geo
-
-						geo_obj.tools[9999]['data']['name'] = outname
-						geo_obj.tools[9999]['data']['cutz'] = self.ui.thin_depth_entry.get_value()
-						geo_obj.tools[9999]['data']['multidepth'] = self.ui.mpass_cb.get_value()
-						geo_obj.tools[9999]['data']['depthperpass'] = self.ui.maxdepth_entry.get_value()
-						# plot this tool in a different color
-						geo_obj.tools[9999]['data']['override_color'] = "#29a3a3fa"
+					self._set_thin_gap_operation(
+						tool=geo_obj.tools[1],
+						geometry=gaps_solid_geo,
+						cutz=self.ui.thin_depth_entry.get_value(),
+						multidepth=self.ui.mpass_cb.get_value(),
+						depthperpass=self.ui.maxdepth_entry.get_value()
+					)
 
 				def excellon_init(exc_obj, app_o):
 					if not holes:
@@ -1263,18 +1296,13 @@ class CutOut(AppTool):
 					geo_obj.tools[1]['data']['multidepth'] = self.ui.mpass_cb.get_value()
 					geo_obj.tools[1]['data']['depthperpass'] = self.ui.maxdepth_entry.get_value()
 
-					if not gaps_solid_geo:
-						pass
-					else:
-						geo_obj.tools[9999] = deepcopy(self.cut_tool_dict)
-						geo_obj.tools[9999]['tooldia'] = str(dia)
-						geo_obj.tools[9999]['solid_geometry'] = gaps_solid_geo
-
-						geo_obj.tools[9999]['data']['name'] = outname
-						geo_obj.tools[9999]['data']['cutz'] = self.ui.thin_depth_entry.get_value()
-						geo_obj.tools[9999]['data']['multidepth'] = self.ui.mpass_cb.get_value()
-						geo_obj.tools[9999]['data']['depthperpass'] = self.ui.maxdepth_entry.get_value()
-						geo_obj.tools[9999]['data']['override_color'] = "#29a3a3fa"
+					self._set_thin_gap_operation(
+						tool=geo_obj.tools[1],
+						geometry=gaps_solid_geo,
+						cutz=self.ui.thin_depth_entry.get_value(),
+						multidepth=self.ui.mpass_cb.get_value(),
+						depthperpass=self.ui.maxdepth_entry.get_value()
+					)
 
 				def excellon_init(exc_obj, app_o):
 					if not holes:
@@ -1428,22 +1456,15 @@ class CutOut(AppTool):
 			self.app.inform.emit('[ERROR_NOTCL] %s' % _("No tool in the Geometry object."))
 			return
 
-		dia = self.ui.dia.get_value()
 		if gaps_solid_geo:
-			if 9999 not in self.man_cutout_obj.tools:
-				self.man_cutout_obj.tools.update({
-					9999: self.cut_tool_dict
-				})
-				self.man_cutout_obj.tools[9999]['tooldia'] = str(dia)
-				self.man_cutout_obj.tools[9999]['solid_geometry'] = [gaps_solid_geo]
-
-				self.man_cutout_obj.tools[9999]['data']['name'] = self.man_cutout_obj.options['name'] + '_cutout'
-				self.man_cutout_obj.tools[9999]['data']['cutz'] = self.ui.thin_depth_entry.get_value()
-				self.man_cutout_obj.tools[9999]['data']['multidepth'] = self.ui.mpass_cb.get_value()
-				self.man_cutout_obj.tools[9999]['data']['depthperpass'] = self.ui.maxdepth_entry.get_value()
-				self.man_cutout_obj.tools[9999]['data']['override_color'] = "#29a3a3fa"
-			else:
-				self.man_cutout_obj.tools[9999]['solid_geometry'].append(gaps_solid_geo)
+			self._set_thin_gap_operation(
+				tool=self.man_cutout_obj.tools[1],
+				geometry=gaps_solid_geo,
+				cutz=self.ui.thin_depth_entry.get_value(),
+				multidepth=self.ui.mpass_cb.get_value(),
+				depthperpass=self.ui.maxdepth_entry.get_value(),
+				append=True
+			)
 
 		self.man_cutout_obj.plot(plot_tool=1)
 		self.app.inform.emit('%s' % _("Added manual Bridge Gap. Left click to add another or right click to finish."))

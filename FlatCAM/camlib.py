@@ -2378,6 +2378,8 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = mirror_geom(self.tools[tool]['solid_geometry'])
+					for operation in self.tools[tool].get('extra_cut_operations', []):
+						operation['solid_geometry'] = mirror_geom(operation.get('solid_geometry', []))
 
 			# Keep the object geometry used by CAM tools in sync with the
 			# per-tool geometry used for plotting MultiGeo objects.
@@ -2445,6 +2447,8 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = rotate_geom(self.tools[tool]['solid_geometry'])
+					for operation in self.tools[tool].get('extra_cut_operations', []):
+						operation['solid_geometry'] = rotate_geom(operation.get('solid_geometry', []))
 
 			# MultiGeo objects also retain geometry at object level.
 			try:
@@ -2511,6 +2515,8 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = skew_geom(self.tools[tool]['solid_geometry'])
+					for operation in self.tools[tool].get('extra_cut_operations', []):
+						operation['solid_geometry'] = skew_geom(operation.get('solid_geometry', []))
 
 			# MultiGeo objects also retain geometry at object level.
 			try:
@@ -2586,6 +2592,14 @@ class Geometry(object):
 						self.tools[tool]['solid_geometry'] = res
 					except TypeError:
 						self.tools[tool]['solid_geometry'] = [res]
+
+					for operation in self.tools[tool].get('extra_cut_operations', []):
+						operation_res = buffer_geom(operation.get('solid_geometry', []))
+						try:
+							__ = iter(operation_res)
+							operation['solid_geometry'] = operation_res
+						except TypeError:
+							operation['solid_geometry'] = [operation_res]
 
 			# variables to display the percentage of work done
 			self.geo_len = 0
