@@ -32,6 +32,7 @@ from appLogger import getLogger
 from rtree import index as rtindex
 
 from copy import deepcopy
+from appEditors.EditorHistory import GeometryEditorHistory
 # from vispy.io import read_png
 import appTranslation as fcTranslate
 import builtins
@@ -1282,6 +1283,7 @@ class TransformEditorTool(AppTool):
 					sel_sha.rotate(-val, point=(px, py))
 					self.draw_app.replot()
 
+				self.draw_app.history_checkpoint(_('Rotate'))
 				self.app.inform.emit('[success] %s' % _("Done."))
 			except Exception as e:
 				self.app.inform.emit('[ERROR_NOTCL] %s: %s.' % (_("Action was not executed"), str(e)))
@@ -1315,6 +1317,7 @@ class TransformEditorTool(AppTool):
 						sha.mirror('Y', (px, py))
 						self.app.inform.emit('[success] %s' % _('Flip on X axis done'))
 					self.draw_app.replot()
+				self.draw_app.history_checkpoint(_('Flip'))
 
 			except Exception as e:
 				self.app.inform.emit('[ERROR_NOTCL] %s: %s.' % (_("Action was not executed"), str(e)))
@@ -1345,6 +1348,7 @@ class TransformEditorTool(AppTool):
 
 					self.draw_app.replot()
 
+				self.draw_app.history_checkpoint(_('Skew'))
 				if axis == 'X':
 					self.app.inform.emit('[success] %s...' % _('Skew on the X axis done'))
 				else:
@@ -1380,6 +1384,7 @@ class TransformEditorTool(AppTool):
 					sha.scale(xfactor, yfactor, point=(px, py))
 					self.draw_app.replot()
 
+				self.draw_app.history_checkpoint(_('Scale'))
 				if str(axis) == 'X':
 					self.app.inform.emit('[success] %s...' % _('Scale on the X axis done'))
 				else:
@@ -1412,6 +1417,7 @@ class TransformEditorTool(AppTool):
 						sha.offset((0, num))
 					self.draw_app.replot()
 
+				self.draw_app.history_checkpoint(_('Offset'))
 				if axis == 'X':
 					self.app.inform.emit('[success] %s...' % _('Offset on the X axis done'))
 				else:
@@ -1435,6 +1441,7 @@ class TransformEditorTool(AppTool):
 
 						self.draw_app.replot()
 
+					self.draw_app.history_checkpoint(_('Buffer'))
 					self.app.inform.emit('[success] %s...' % _('Buffer done'))
 
 				except Exception as e:
@@ -1869,6 +1876,7 @@ class DrawTool(object):
 		self.draw_app = draw_app
 		self.complete = False
 		self.points = []
+		self.redo_points = []
 		self.geometry = None  # DrawToolShape or None
 
 	def click(self, point):
@@ -3166,6 +3174,7 @@ class FCEraser(FCShapeTool):
 
 		self.draw_app.delete_utility_geometry()
 		self.draw_app.plot_all()
+		self.draw_app.history_checkpoint(_('Eraser'))
 		self.draw_app.app.inform.emit('[success] %s' % _("Done."))
 		try:
 			self.draw_app.app.jump_signal.disconnect()
@@ -3243,6 +3252,7 @@ class AppGeoEditor(QtCore.QObject):
 	item_selected = QtCore.pyqtSignal(str)
 
 	transform_complete = QtCore.pyqtSignal()
+	history_changed = QtCore.pyqtSignal()
 
 	draw_shape_idx = -1
 
@@ -3328,6 +3338,10 @@ class AppGeoEditor(QtCore.QObject):
 
 		self.storage = AppGeoEditor.make_storage()
 		self.utility = []
+		self.history = GeometryEditorHistory(max_steps=30, max_bytes=128 * 1024 * 1024)
+		self.history_active = False
+		self.history_restoring = False
+		self.history_changed.connect(self._update_history_actions)
 
 		# VisPy visuals
 		self.fcgeometry = None
@@ -3426,6 +3440,8 @@ class AppGeoEditor(QtCore.QObject):
 		self.connect_geo_toolbar_signals()
 
 		# connect Geometry Editor Menu signals
+		self.app.ui.geo_undo_menuitem.triggered.connect(self.undo_history)
+		self.app.ui.geo_redo_menuitem.triggered.connect(self.redo_history)
 		self.app.ui.geo_add_circle_menuitem.triggered.connect(lambda: self.select_tool('circle'))
 		self.app.ui.geo_add_arc_menuitem.triggered.connect(lambda: self.select_tool('arc'))
 		self.app.ui.geo_add_rectangle_menuitem.triggered.connect(lambda: self.select_tool('rectangle'))
@@ -3489,6 +3505,10 @@ class AppGeoEditor(QtCore.QObject):
 			self.tools[tool]["button"].triggered.connect(self.make_callback(tool))  # Events
 			self.tools[tool]["button"].setCheckable(True)  # Checkable
 
+		self.app.ui.geo_undo_btn.triggered.connect(self.undo_history)
+		self.app.ui.geo_redo_btn.triggered.connect(self.redo_history)
+		self._update_history_actions()
+
 	def pool_recreated(self, pool):
 		self.shapes.pool = pool
 		self.tool_shape.pool = pool
@@ -3496,6 +3516,117 @@ class AppGeoEditor(QtCore.QObject):
 	def on_transform_complete(self):
 		self.delete_selected()
 		self.replot()
+		self.history_checkpoint(_('Transformation'))
+
+	def _history_geometries(self):
+		return [shape.geo for shape in self.storage.get_objects()]
+
+	def history_checkpoint(self, label=''):
+		if self.history_active is False or self.history_restoring is True:
+			return False
+
+		changed = self.history.record(self._history_geometries(), label=label)
+		self.history_changed.emit()
+		return changed
+
+	def _has_point_undo(self):
+		return isinstance(self.active_tool, FCShapeTool) and self.active_tool.complete is False and \
+			bool(self.active_tool.points)
+
+	def _has_point_redo(self):
+		return isinstance(self.active_tool, FCShapeTool) and self.active_tool.complete is False and \
+			bool(self.active_tool.redo_points)
+
+	def _update_history_actions(self):
+		can_undo = self.history_active and (self._has_point_undo() or self.history.can_undo())
+		can_redo = self.history_active and (self._has_point_redo() or self.history.can_redo())
+
+		for action_name in ('geo_undo_btn', 'geo_undo_menuitem'):
+			action = getattr(self.app.ui, action_name, None)
+			if action is not None:
+				action.setEnabled(can_undo)
+		for action_name in ('geo_redo_btn', 'geo_redo_menuitem'):
+			action = getattr(self.app.ui, action_name, None)
+			if action is not None:
+				action.setEnabled(can_redo)
+
+	def _redraw_active_tool_utility(self):
+		self.tool_shape.clear(update=True)
+		if self.snap_x is None or self.snap_y is None:
+			self.tool_shape.redraw()
+			return
+
+		geo = self.active_tool.utility_geometry(data=(self.snap_x, self.snap_y))
+		if isinstance(geo, DrawToolShape) and geo.geo is not None:
+			self.draw_utility_geometry(geo=geo)
+		else:
+			self.tool_shape.redraw()
+
+	def _undo_active_tool_point(self):
+		if not self._has_point_undo():
+			return False
+
+		self.active_tool.redo_points.append(self.active_tool.points.pop())
+		if isinstance(self.active_tool, (FCPolygon, FCPath)):
+			self.in_action = bool(self.active_tool.points)
+		self._redraw_active_tool_utility()
+		self._update_history_actions()
+		self.app.inform.emit('[success] %s' % _('Last point removed.'))
+		return True
+
+	def _redo_active_tool_point(self):
+		if not self._has_point_redo():
+			return False
+
+		self.active_tool.points.append(self.active_tool.redo_points.pop())
+		if isinstance(self.active_tool, (FCPolygon, FCPath)):
+			self.in_action = True
+		self._redraw_active_tool_utility()
+		self._update_history_actions()
+		self.app.inform.emit('[success] %s' % _('Last point restored.'))
+		return True
+
+	def _restore_history_state(self, geometries):
+		if geometries is None:
+			return False
+
+		self.history_restoring = True
+		try:
+			self.delete_utility_geometry()
+			try:
+				self.active_tool.clean_up()
+			except (AttributeError, TypeError):
+				pass
+
+			self.in_action = False
+			self.selected = []
+			self.utility = []
+			self.storage = self.make_storage()
+			for geometry in geometries:
+				if geometry is not None:
+					self.storage.insert(DrawToolShape(geometry))
+
+			self.select_tool('select')
+			self.build_ui()
+			self.replot()
+		finally:
+			self.history_restoring = False
+			self._update_history_actions()
+		return True
+
+	def undo_history(self):
+		if self._undo_active_tool_point():
+			return
+
+		if self._restore_history_state(self.history.undo()):
+			self.app.inform.emit('[success] %s' % _('Undo completed.'))
+
+	def redo_history(self):
+		if self._redo_active_tool_point():
+			return
+
+		if self._restore_history_state(self.history.redo()):
+			self.app.inform.emit('[success] %s' % _('Redo completed.'))
 
 	def entry2option(self, opt, entry):
 		"""
@@ -3634,6 +3765,9 @@ class AppGeoEditor(QtCore.QObject):
 		self.storage = AppGeoEditor.make_storage()
 		self.utility = []
 		self.selected = []
+		self.history_active = False
+		self.history.clear()
+		self._update_history_actions()
 
 		self.shapes.enabled = True
 		self.tool_shape.enabled = True
@@ -3689,6 +3823,9 @@ class AppGeoEditor(QtCore.QObject):
 		self.app.ui.popmenu_save.setVisible(False)
 
 		self.disconnect_canvas_event_handlers()
+		self.history_active = False
+		self.history.clear()
+		self._update_history_actions()
 		self.clear()
 		self.app.ui.geo_edit_toolbar.setDisabled(True)
 
@@ -4088,7 +4225,11 @@ class AppGeoEditor(QtCore.QObject):
 			if self.active_tool is not None and event.button == 1:
 
 				# Dispatch event to active_tool
+				old_point_count = len(getattr(self.active_tool, 'points', []))
 				self.active_tool.click(self.snap(self.pos[0], self.pos[1]))
+				if len(getattr(self.active_tool, 'points', [])) > old_point_count:
+					self.active_tool.redo_points = []
+					self._update_history_actions()
 
 				# If it is a shape generating tool
 				if isinstance(self.active_tool, FCShapeTool) and self.active_tool.complete:
@@ -4372,6 +4513,7 @@ class AppGeoEditor(QtCore.QObject):
 	def on_delete_btn(self):
 		self.delete_selected()
 		self.replot()
+		self.history_checkpoint(_('Delete'))
 
 	def delete_selected(self):
 		tempref = [s for s in self.selected]
@@ -4560,6 +4702,7 @@ class AppGeoEditor(QtCore.QObject):
 
 		# Replot and reset tool.
 		self.replot()
+		self.history_checkpoint(_('Geometry action'))
 		# self.active_tool = type(self.active_tool)(self)
 
 	@staticmethod
@@ -4714,6 +4857,9 @@ class AppGeoEditor(QtCore.QObject):
 				else:
 					self.add_shape(DrawToolShape(shape))
 
+		self.history.reset(self._history_geometries())
+		self.history_active = True
+		self._update_history_actions()
 		self.replot()
 
 		# updated units
@@ -4786,6 +4932,7 @@ class AppGeoEditor(QtCore.QObject):
 		self.add_shape(DrawToolShape(results))
 
 		self.replot()
+		self.history_checkpoint(_('Union'))
 
 	def intersection_2(self):
 		"""
@@ -4819,6 +4966,7 @@ class AppGeoEditor(QtCore.QObject):
 		self.add_shape(DrawToolShape(results))
 
 		self.replot()
+		self.history_checkpoint(_('Intersection'))
 
 	def intersection(self):
 		"""
@@ -4859,6 +5007,7 @@ class AppGeoEditor(QtCore.QObject):
 		# Selected geometry is now gone!
 		self.selected = []
 		self.replot()
+		self.history_checkpoint(_('Intersection'))
 
 	def subtract(self):
 		selected = self.get_selected()
@@ -4876,6 +5025,7 @@ class AppGeoEditor(QtCore.QObject):
 			self.add_shape(DrawToolShape(result))
 
 			self.replot()
+			self.history_checkpoint(_('Subtraction'))
 		except Exception as e:
 			log.debug(str(e))
 
@@ -4890,6 +5040,7 @@ class AppGeoEditor(QtCore.QObject):
 			self.add_shape(DrawToolShape(result))
 
 			self.replot()
+			self.history_checkpoint(_('Subtraction'))
 		except Exception as e:
 			log.debug(str(e))
 
@@ -4916,6 +5067,7 @@ class AppGeoEditor(QtCore.QObject):
 
 		self.delete_shape(target)
 		self.replot()
+		self.history_checkpoint(_('Cut path'))
 
 	def buffer(self, buf_distance, join_style):
 		selected = self.get_selected()
@@ -4971,6 +5123,7 @@ class AppGeoEditor(QtCore.QObject):
 		self.replot()
 		self.app.inform.emit('[success] %s' %
 							 _("Full buffer geometry created."))
+		self.history_checkpoint(_('Buffer'))
 
 	def buffer_int(self, buf_distance, join_style):
 		selected = self.get_selected()
@@ -5018,6 +5171,7 @@ class AppGeoEditor(QtCore.QObject):
 
 		self.replot()
 		self.app.inform.emit('[success] %s' % _("Interior buffer geometry created."))
+		self.history_checkpoint(_('Buffer'))
 
 	def buffer_ext(self, buf_distance, join_style):
 		selected = self.get_selected()
@@ -5067,6 +5221,7 @@ class AppGeoEditor(QtCore.QObject):
 
 		self.replot()
 		self.app.inform.emit('[success] %s' % _("Exterior buffer geometry created."))
+		self.history_checkpoint(_('Buffer'))
 
 	def paint(self, tooldia, overlap, margin, connect, contour, method):
 
@@ -5157,6 +5312,7 @@ class AppGeoEditor(QtCore.QObject):
 			self.add_shape(DrawToolShape(r))
 		self.app.inform.emit('[success] %s' % _("Done."))
 		self.replot()
+		self.history_checkpoint(_('Paint'))
 
 	def flatten(self, geometry, orient_val=1, reset=True, pathonly=False):
 		"""

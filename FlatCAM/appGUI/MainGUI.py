@@ -629,6 +629,17 @@ class MainGUI(QtWidgets.QMainWindow):
 		# ########################################################################
 		self.geo_editor_menu = QtWidgets.QMenu('>%s<' % _('Geo Editor'))
 		self.menu.addMenu(self.geo_editor_menu)
+		undo_icon = QtGui.QIcon.fromTheme(
+			'edit-undo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowBack))
+		redo_icon = QtGui.QIcon.fromTheme(
+			'edit-redo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowForward))
+		self.geo_undo_menuitem = self.geo_editor_menu.addAction(
+			undo_icon, '%s\t%s' % (_('Undo'), _('Ctrl+Z')))
+		self.geo_redo_menuitem = self.geo_editor_menu.addAction(
+			redo_icon, '%s\t%s' % (_('Redo'), _('Ctrl+Y')))
+		self.geo_undo_menuitem.setEnabled(False)
+		self.geo_redo_menuitem.setEnabled(False)
+		self.geo_editor_menu.addSeparator()
 
 		self.geo_add_circle_menuitem = self.geo_editor_menu.addAction(
 			QtGui.QIcon(':/images/circle32.png'),
@@ -1119,6 +1130,17 @@ class MainGUI(QtWidgets.QMainWindow):
 		# ########################################################################
 		# ########################## Geometry Editor Toolbar# ####################
 		# ########################################################################
+		undo_icon = QtGui.QIcon.fromTheme(
+			'edit-undo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowBack))
+		redo_icon = QtGui.QIcon.fromTheme(
+			'edit-redo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowForward))
+		self.geo_undo_btn = self.geo_edit_toolbar.addAction(undo_icon, _('Undo'))
+		self.geo_redo_btn = self.geo_edit_toolbar.addAction(redo_icon, _('Redo'))
+		self.geo_undo_btn.setToolTip('%s (%s)' % (_('Undo'), _('Ctrl+Z')))
+		self.geo_redo_btn.setToolTip('%s (%s)' % (_('Redo'), _('Ctrl+Y')))
+		self.geo_undo_btn.setEnabled(False)
+		self.geo_redo_btn.setEnabled(False)
+		self.geo_edit_toolbar.addSeparator()
 		self.geo_select_btn = self.geo_edit_toolbar.addAction(
 			QtGui.QIcon(':/images/pointer32.png'), _("Select"))
 		self.geo_add_circle_btn = self.geo_edit_toolbar.addAction(
@@ -2286,6 +2308,17 @@ class MainGUI(QtWidgets.QMainWindow):
 		# ########################################################################
 		# ################### Geometry Editor Toolbar ############################
 		# ########################################################################
+		undo_icon = QtGui.QIcon.fromTheme(
+			'edit-undo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowBack))
+		redo_icon = QtGui.QIcon.fromTheme(
+			'edit-redo', self.style().standardIcon(QtWidgets.QStyle.SP_ArrowForward))
+		self.geo_undo_btn = self.geo_edit_toolbar.addAction(undo_icon, _('Undo'))
+		self.geo_redo_btn = self.geo_edit_toolbar.addAction(redo_icon, _('Redo'))
+		self.geo_undo_btn.setToolTip('%s (%s)' % (_('Undo'), _('Ctrl+Z')))
+		self.geo_redo_btn.setToolTip('%s (%s)' % (_('Redo'), _('Ctrl+Y')))
+		self.geo_undo_btn.setEnabled(False)
+		self.geo_redo_btn.setEnabled(False)
+		self.geo_edit_toolbar.addSeparator()
 		self.geo_select_btn = self.geo_edit_toolbar.addAction(
 			QtGui.QIcon(':/images/pointer32.png'), _("Select"))
 		self.geo_add_circle_btn = self.geo_edit_toolbar.addAction(
@@ -2423,16 +2456,16 @@ class MainGUI(QtWidgets.QMainWindow):
 			# check for modifiers
 			key_string = key.toString().lower()
 			if '+' in key_string:
-				mod, __, key_text = key_string.rpartition('+')
-				if mod.lower() == 'ctrl':
-					modifiers = QtCore.Qt.ControlModifier
-				elif mod.lower() == 'alt':
-					modifiers = QtCore.Qt.AltModifier
-				elif mod.lower() == 'shift':
-					modifiers = QtCore.Qt.ShiftModifier
-				else:
-					modifiers = QtCore.Qt.NoModifier
-				key = QtGui.QKeySequence(key_text)
+				key_parts = key_string.split('+')
+				modifiers = QtCore.Qt.NoModifier
+				for modifier in key_parts[:-1]:
+					if modifier == 'ctrl':
+						modifiers |= QtCore.Qt.ControlModifier
+					elif modifier == 'alt':
+						modifiers |= QtCore.Qt.AltModifier
+					elif modifier == 'shift':
+						modifiers |= QtCore.Qt.ShiftModifier
+				key = QtGui.QKeySequence(key_parts[-1])
 
 		# events from Vispy are of type KeyEvent
 		else:
@@ -2910,8 +2943,21 @@ class MainGUI(QtWidgets.QMainWindow):
 
 				return
 		elif self.app.call_source == 'geo_editor':
+			# CTRL + SHIFT
+			if modifiers == QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier:
+				if key == QtCore.Qt.Key_Z or key == 'Z':
+					self.app.geo_editor.redo_history()
+					return
 			# CTRL
-			if modifiers == QtCore.Qt.ControlModifier:
+			elif modifiers == QtCore.Qt.ControlModifier:
+				if key == QtCore.Qt.Key_Z or key == 'Z':
+					self.app.geo_editor.undo_history()
+					return
+
+				if key == QtCore.Qt.Key_Y or key == 'Y':
+					self.app.geo_editor.redo_history()
+					return
+
 				# save (update) the current geometry and return to the App
 				if key == QtCore.Qt.Key_S or key == 'S':
 					self.app.editor2object()
@@ -3023,8 +3069,7 @@ class MainGUI(QtWidgets.QMainWindow):
 
 				# Delete selected object
 				if key == QtCore.Qt.Key_Delete or key == 'Delete':
-					self.app.geo_editor.delete_selected()
-					self.app.geo_editor.replot()
+					self.app.geo_editor.on_delete_btn()
 
 				# Rotate
 				if key == QtCore.Qt.Key_Space or key == 'Space':
@@ -4680,6 +4725,14 @@ class ShortcutsTab(QtWidgets.QWidget):
 						<td height="20"><strong>%s</strong></td>
 						<td>&nbsp;%s</td>
 					</tr>
+					<tr height="20">
+						<td height="20"><strong>%s</strong></td>
+						<td>&nbsp;%s</td>
+					</tr>
+					<tr height="20">
+						<td height="20"><strong>%s</strong></td>
+						<td>&nbsp;%s</td>
+					</tr>
 				</tbody>
 			</table>
 			<br>
@@ -4713,6 +4766,8 @@ class ShortcutsTab(QtWidgets.QWidget):
 			_('Ctrl+M'), _("Distance Tool"),
 			_('Ctrl+S'), _("Save Object and Exit Editor"),
 			_('Ctrl+X'), _("Polygon Cut Tool"),
+			_('Ctrl+Z'), _("Undo Geometry Editor action"),
+			_('Ctrl+Y / Ctrl+Shift+Z'), _("Redo Geometry Editor action"),
 			_('Space'), _("Rotate Geometry"),
 			_('ENTER'), _("Finish drawing for certain tools"),
 			_('Esc'), _("Abort and return to Select"),

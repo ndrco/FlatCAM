@@ -8,6 +8,15 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco 2026.09.5
+
+- added bounded Undo/Redo history to the Geometry Editor
+- added toolbar and menu actions plus Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z shortcuts
+- covered drawing, move/copy/delete, boolean operations, buffers, paint, eraser and transformations
+- added point-level Undo/Redo while a shape is still being drawn
+- rebuilt the geometry RTree whenever a history state is restored
+- added regression tests for snapshot independence, branching and history limits
+
 19.09.2026 - ndrco 2026.09.4
 
 - made Any-form Cutout follow segmented and concave Gerber Edge-Cuts contours instead of their bounding box

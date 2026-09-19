@@ -1,4 +1,4 @@
-# FlatCAM 2026.09.4 — ndrco edition
+# FlatCAM 2026.09.5 — ndrco edition
 
 ![FlatCAM β](/FlatCAM/assets/resources/flatcam_icon128.png)
 
@@ -21,12 +21,24 @@ The recommended Linux package is the x86_64 AppImage from the
 [latest release](https://github.com/ndrco/FlatCAM/releases/latest).
 
 ```sh
-chmod +x flatcam-2026.09.4-x86_64.AppImage
-./flatcam-2026.09.4-x86_64.AppImage
+chmod +x flatcam-2026.09.5-x86_64.AppImage
+./flatcam-2026.09.5-x86_64.AppImage
 ```
 
 The AppImage is self-contained and stores user preferences in `~/.FlatCAM`.
 No system-wide Python installation is required.
+
+## Changes in 2026.09.5
+
+* Added Undo and Redo to the Geometry Editor toolbar and menu.
+* Added `Ctrl+Z` for Undo and both `Ctrl+Y` and `Ctrl+Shift+Z` for Redo.
+* Completed drawing, move, copy, delete, boolean, buffer, paint, eraser and
+  transformation operations are stored as independent history steps.
+* While drawing an unfinished shape, Undo/Redo removes or restores the last
+  entered point without discarding the whole shape.
+* History is limited to 30 actions and approximately 128 MiB, and is cleared
+  when leaving the Geometry Editor. Gerber and Excellon editors are not yet
+  included.
 
 ## Changes in 2026.09.4
 
@@ -93,7 +105,7 @@ objects. Previously generated toolpaths are not updated automatically.
 
 ## Linux AppImage installation
 
-Download `flatcam-2026.09.4-x86_64.AppImage` from this repository's
+Download `flatcam-2026.09.5-x86_64.AppImage` from this repository's
 [Releases page](https://github.com/ndrco/FlatCAM/releases), make it executable
 and run it. The release is built for x86_64 Linux and bundles Python 3.10 and
 the required Python packages.
