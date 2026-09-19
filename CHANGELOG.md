@@ -8,6 +8,12 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco 2026.09.3
+
+- fixed the NCC Rest Machining crash when a boolean difference returned one Polygon
+- normalized Polygon, MultiPolygon and GeometryCollection results before iterating NCC areas
+- added regression tests for single-polygon and mixed-collection results
+
 19.09.2026 - ndrco 2026.09.2
 
 - kept object-level and per-tool MultiGeo geometry synchronized after mirroring, rotation and skew

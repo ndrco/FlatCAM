@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from shapely import affinity
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import GeometryCollection, LineString, MultiPolygon, Point, Polygon, box
 from shapely.ops import unary_union
 
 # Importing the tool package also loads app_Main, which parses command-line args.
@@ -123,6 +123,26 @@ class GeometryTransformNCCTest(unittest.TestCase):
         self.assertFalse(paths.intersects(copper))
         self.assertTrue(paths.intersects(box(75, 50, 95, 75)))
         self.assertFalse(paths.intersects(box(5, 50, 25, 75)))
+
+    def test_rest_machining_keeps_single_difference_polygon_iterable(self):
+        area = MultiPolygon([box(0, 0, 10, 10)])
+        remaining = area.difference(box(0, 0, 5, 10))
+        self.assertIsInstance(remaining, Polygon)
+
+        normalized = self.ncc._as_multipolygon(remaining)
+
+        self.assertIsInstance(normalized, MultiPolygon)
+        self.assertEqual(len(normalized.geoms), 1)
+        self.assert_same_area(normalized, remaining)
+
+    def test_rest_machining_ignores_non_polygon_collection_parts(self):
+        polygon = box(1, 1, 4, 4)
+        mixed = GeometryCollection([polygon, LineString([(0, 0), (5, 5)])])
+
+        normalized = self.ncc._as_multipolygon(mixed)
+
+        self.assertEqual(len(normalized.geoms), 1)
+        self.assert_same_area(normalized, polygon)
 
 
 if __name__ == '__main__':

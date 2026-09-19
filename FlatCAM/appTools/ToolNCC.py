@@ -2297,9 +2297,9 @@ class NonCopperClear(AppTool, Gerber):
 															  has_offset=has_offset,  ncc_offset=ncc_offset,
 															  tools_storage=tools_storage, bounding_box=bbox)
 
-				# Transform area to MultiPolygon
-				if isinstance(area, Polygon):
-					area = MultiPolygon([area])
+				# Keep a stable container type. Shapely may return either Polygon,
+				# MultiPolygon or GeometryCollection after boolean operations.
+				area = self._as_multipolygon(area)
 
 				# variables to display the percentage of work done
 				geo_len = len(area.geoms)
@@ -2502,6 +2502,7 @@ class NonCopperClear(AppTool, Gerber):
 														  has_offset=has_offset, ncc_offset=ncc_offset,
 														  ncc_margin=ncc_margin, tools_storage=tools_storage,
 														  bounding_box=bbox)
+			area = self._as_multipolygon(area)
 
 			# for testing purposes ----------------------------------
 			# for po in area.geoms:
@@ -2635,10 +2636,7 @@ class NonCopperClear(AppTool, Gerber):
 				new_area = MultiPolygon([line.buffer(tool / 1.9999999) for line in cleared_geo])
 				new_area = new_area.buffer(0.0000001)
 
-				area = area.difference(new_area)
-
-				new_area = [pol for pol in area if pol.is_valid and not pol.is_empty]
-				area = MultiPolygon(new_area)
+				area = self._as_multipolygon(area.difference(new_area))
 
 				# speedup the clearing by not trying to clear polygons that is clear they can't be
 				# cleared with any tool. this tremendously reduce the clearing time
@@ -3132,9 +3130,8 @@ class NonCopperClear(AppTool, Gerber):
 				except Exception:
 					continue
 
-				# Transform area to MultiPolygon
-				if type(area) is Polygon:
-					area = MultiPolygon([area])
+				# Boolean operations may collapse a MultiPolygon into one Polygon.
+				area = self._as_multipolygon(area)
 
 				# variables to display the percentage of work done
 				geo_len = len(area.geoms)
@@ -3487,7 +3484,7 @@ class NonCopperClear(AppTool, Gerber):
 			if type(empty) is Polygon:
 				empty = MultiPolygon([empty])
 
-			area = empty.buffer(0)
+			area = self._as_multipolygon(empty.buffer(0))
 
 			log.debug("NCC Tool. Finished calculation of 'empty' area.")
 			app_obj.inform.emit("NCC Tool. Finished calculation of 'empty' area.")
@@ -3523,9 +3520,8 @@ class NonCopperClear(AppTool, Gerber):
 						pass
 				cleared_by_last_tool[:] = []
 
-				# Transform area to MultiPolygon
-				if type(area) is Polygon:
-					area = MultiPolygon([area])
+				# Boolean operations may collapse a MultiPolygon into one Polygon.
+				area = self._as_multipolygon(area)
 
 				# add the rest that was not able to be cleared previously; area is a MultyPolygon
 				# and rest_geo it's a list
@@ -3781,6 +3777,36 @@ class NonCopperClear(AppTool, Gerber):
 				return 'fail'
 
 		return ret_val
+
+	@staticmethod
+	def _as_multipolygon(geometry):
+		"""Return all valid polygonal parts in a stable MultiPolygon container."""
+		polygons = []
+
+		def collect(item):
+			if item is None:
+				return
+			if isinstance(item, (list, tuple)):
+				for part in item:
+					collect(part)
+				return
+			if item.is_empty:
+				return
+			if isinstance(item, Polygon):
+				if item.is_valid:
+					polygons.append(item)
+				return
+			if isinstance(item, MultiPolygon):
+				for part in item.geoms:
+					collect(part)
+				return
+			# GeometryCollection can contain line fragments produced by a
+			# difference. Only its polygonal parts belong to an NCC area.
+			for part in getattr(item, 'geoms', ()):
+				collect(part)
+
+		collect(geometry)
+		return MultiPolygon(polygons)
 
 	@staticmethod
 	def poly2rings(poly):
