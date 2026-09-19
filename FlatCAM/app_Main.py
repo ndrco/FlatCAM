@@ -282,6 +282,7 @@ class App(QtCore.QObject):
 		log.info(f'FlatCAM {self.version}')
 
 		self.qapp = qapp
+		self._shutdown_in_progress = False
 
 		# App Editors will be instantiated further below
 		self.exc_editor = None
@@ -3497,6 +3498,9 @@ class App(QtCore.QObject):
 		:return: None
 		"""
 
+		if self._shutdown_in_progress:
+			return
+
 		if self.save_in_progress:
 			self.inform.emit('[WARNING_NOTCL] %s' % _("Application is saving the project. Please wait ..."))
 			return
@@ -3545,6 +3549,10 @@ class App(QtCore.QObject):
 
 		:return: None
 		"""
+
+		if self._shutdown_in_progress:
+			return
+		self._shutdown_in_progress = True
 
 		# close editors before quiting the app, if they are open
 		if self.call_source == 'geo_editor':
@@ -3627,32 +3635,47 @@ class App(QtCore.QObject):
 
 		self.log.debug('App UI state saved.')
 
-		# try to quit the Socket opened by ArgsThread class
+		# Close the listener directly: its Qt event loop is blocked in accept(),
+		# therefore a queued stop signal cannot be delivered reliably.
 		try:
-			# self.new_launch.thread_exit = True
-			# self.new_launch.listener.close()
-			self.new_launch.stop.emit()
+			self.new_launch.close_listener()
 		except Exception as err:
 			self.log.debug(str(err))
 
-		# try to quit the QThread that run ArgsThread class
+		# Stop and join the listener thread before Qt destroys its objects.
 		try:
-			# del self.new_launch
 			self.listen_th.quit()
+			if not self.listen_th.wait(3000):
+				self.log.warning('ArgsThread did not stop within 3 seconds.')
 		except Exception as e:
 			self.log.debug(str(e))
 
 		self.log.debug('ArgsThread stopped.')
 
-		# terminate workers
-		# self.workers.__del__()
-		self.clear_pool()
-		self.log.debug('Pool cleared.')
+		# Stop Qt workers before tearing down the multiprocessing pool.
+		try:
+			self.workers.shutdown()
+		except Exception as err:
+			self.log.debug(str(err))
 
-		# quit app by signalling for self.kill_app() method
-		# self.close_app_signal.emit()
+		# clear_pool() intentionally creates a replacement Pool and must not be
+		# used during shutdown. Terminate and join the existing Pool instead.
+		try:
+			self.pool.terminate()
+			self.pool.join()
+		except Exception as err:
+			self.log.debug(str(err))
+		self.log.debug('Pool stopped.')
+
+		# Let app.exec_() return normally. Raising SystemExit from the closeEvent
+		# signal stack can make SIP tear down live Qt objects and segfault.
 		QtWidgets.qApp.quit()
-		sys.exit(0)
+
+		# PyQt5/SIP and the OpenGL canvas can still crash while their native
+		# objects are destroyed during interpreter shutdown. All application
+		# state and background services are already clean at this point, so
+		# bypass that unsafe native teardown and report a successful exit.
+		os._exit(0)
 
 		# When the main event loop is not started yet in which case the qApp.quit() will do nothing
 		# we use the following command
@@ -8216,6 +8239,8 @@ class ArgsThread(QtCore.QObject):
 				conn = self.listener.accept()
 				self.serve(conn)
 		except socket.error:
+			if self.thread_exit:
+				return
 			try:
 				conn = Client(*address)
 				conn.send(sys.argv)
@@ -8233,9 +8258,15 @@ class ArgsThread(QtCore.QObject):
 				else:
 					os.system('rm /tmp/testipc')
 					self.listener = Listener(*address)
-					while True:
+					while self.thread_exit is False:
 						conn = self.listener.accept()
 						self.serve(conn)
+		finally:
+			if self.listener is not None:
+				try:
+					self.listener.close()
+				except OSError:
+					pass
 
 	def serve(self, conn):
 		while self.thread_exit is False:
@@ -8254,7 +8285,15 @@ class ArgsThread(QtCore.QObject):
 	@pyqtSlot()
 	def close_listener(self):
 		self.thread_exit = True
-		self.listener.close()
+		if self.listener is not None:
+			try:
+				# Closing a listening socket from another thread does not reliably
+				# interrupt accept(). A local connection wakes it so my_loop() can
+				# observe thread_exit and close the listener in its own thread.
+				wake_connection = Client(*self.address)
+				wake_connection.close()
+			except (OSError, ConnectionError):
+				pass
 
 
 class MenuFileHandlers(QtCore.QObject):

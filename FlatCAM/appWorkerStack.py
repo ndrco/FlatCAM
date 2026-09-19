@@ -32,8 +32,17 @@ class WorkerStack(QtCore.QObject):
 			self.load[worker.name] = 0
 
 	def __del__(self):
+		self.shutdown(wait_ms=100)
+
+	def shutdown(self, wait_ms=1000):
+		"""Stop the worker event loops before Qt starts destroying objects."""
 		for thread in self.threads:
-			thread.terminate()
+			thread.quit()
+
+		for thread in self.threads:
+			if not thread.wait(wait_ms):
+				thread.terminate()
+				thread.wait(wait_ms)
 
 	def add_task(self, task):
 		worker_name = min(self.load, key=self.load.get)

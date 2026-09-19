@@ -8,6 +8,13 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco (unreleased)
+
+- fixed a PyQt/SIP segmentation fault during application shutdown
+- stopped and joined the argument listener, Qt workers and multiprocessing pool before exit
+- prevented repeated shutdown handling from nested Qt close events
+- added clean-shutdown regression tests, including waking a listener blocked in accept()
+
 19.09.2026 - ndrco 2026.09.6
 
 - made Thin cutout gaps use the selected physical tool instead of synthetic tool 9999
