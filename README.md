@@ -1,4 +1,4 @@
-# FlatCAM 2026.09.1 — ndrco edition
+# FlatCAM 2026.09.2 — ndrco edition
 
 ![FlatCAM β](/FlatCAM/assets/resources/flatcam_icon128.png)
 
@@ -21,12 +21,24 @@ The recommended Linux package is the x86_64 AppImage from the
 [latest release](https://github.com/ndrco/FlatCAM/releases/latest).
 
 ```sh
-chmod +x flatcam-2026.09.1-x86_64.AppImage
-./flatcam-2026.09.1-x86_64.AppImage
+chmod +x flatcam-2026.09.2-x86_64.AppImage
+./flatcam-2026.09.2-x86_64.AppImage
 ```
 
 The AppImage is self-contained and stores user preferences in `~/.FlatCAM`.
 No system-wide Python installation is required.
+
+## Changes in 2026.09.2
+
+* Fixed NCC using the original boundary after a MultiGeo reference polygon
+  was mirrored. The plotted and object-level geometry now stay in sync after
+  mirroring, rotation and skew.
+* NCC uses the current per-tool reference geometry, including in projects
+  saved with a stale boundary by older releases.
+* Added regression coverage for transformed boundaries and NCC toolpaths.
+
+After upgrading, regenerate NCC geometry and CNCJob/G-code from the source
+objects. Previously generated toolpaths are not updated automatically.
 
 ## Changes in 2026.09.1
 
@@ -59,7 +71,7 @@ No system-wide Python installation is required.
 
 ## Linux AppImage installation
 
-Download `flatcam-2026.09.1-x86_64.AppImage` from this repository's
+Download `flatcam-2026.09.2-x86_64.AppImage` from this repository's
 [Releases page](https://github.com/ndrco/FlatCAM/releases), make it executable
 and run it. The release is built for x86_64 Linux and bundles Python 3.10 and
 the required Python packages.

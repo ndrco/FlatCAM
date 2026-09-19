@@ -2378,17 +2378,16 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = mirror_geom(self.tools[tool]['solid_geometry'])
-			else:
-				# variables to display the percentage of work done
-				self.geo_len = 0
-				try:
-					self.geo_len = len(self.solid_geometry)
-				except TypeError:
-					self.geo_len = 1
-				self.old_disp_number = 0
-				self.el_count = 0
 
-				self.solid_geometry = mirror_geom(self.solid_geometry)
+			# Keep the object geometry used by CAM tools in sync with the
+			# per-tool geometry used for plotting MultiGeo objects.
+			try:
+				self.geo_len = len(self.solid_geometry)
+			except TypeError:
+				self.geo_len = 1
+			self.old_disp_number = 0
+			self.el_count = 0
+			self.solid_geometry = mirror_geom(self.solid_geometry)
 			self.app.inform.emit('[success] %s...' % _('Object was mirrored'))
 		except AttributeError:
 			self.app.inform.emit('[ERROR_NOTCL] %s %s' % (_("Failed."), _("No object is selected.")))
@@ -2446,17 +2445,15 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = rotate_geom(self.tools[tool]['solid_geometry'])
-			else:
-				# variables to display the percentage of work done
-				self.geo_len = 0
-				try:
-					self.geo_len = len(self.solid_geometry)
-				except TypeError:
-					self.geo_len = 1
-				self.old_disp_number = 0
-				self.el_count = 0
 
-				self.solid_geometry = rotate_geom(self.solid_geometry)
+			# MultiGeo objects also retain geometry at object level.
+			try:
+				self.geo_len = len(self.solid_geometry)
+			except TypeError:
+				self.geo_len = 1
+			self.old_disp_number = 0
+			self.el_count = 0
+			self.solid_geometry = rotate_geom(self.solid_geometry)
 			self.app.inform.emit('[success] %s...' % _('Object was rotated'))
 		except AttributeError:
 			self.app.inform.emit('[ERROR_NOTCL] %s %s' % (_("Failed."), _("No object is selected.")))
@@ -2514,17 +2511,15 @@ class Geometry(object):
 					self.el_count = 0
 
 					self.tools[tool]['solid_geometry'] = skew_geom(self.tools[tool]['solid_geometry'])
-			else:
-				# variables to display the percentage of work done
-				self.geo_len = 0
-				try:
-					self.geo_len = len(self.solid_geometry)
-				except TypeError:
-					self.geo_len = 1
-				self.old_disp_number = 0
-				self.el_count = 0
 
-				self.solid_geometry = skew_geom(self.solid_geometry)
+			# MultiGeo objects also retain geometry at object level.
+			try:
+				self.geo_len = len(self.solid_geometry)
+			except TypeError:
+				self.geo_len = 1
+			self.old_disp_number = 0
+			self.el_count = 0
+			self.solid_geometry = skew_geom(self.solid_geometry)
 			self.app.inform.emit('[success] %s...' % _('Object was skewed'))
 		except AttributeError:
 			self.app.inform.emit('[ERROR_NOTCL] %s %s' % (_("Failed."), _("No object is selected.")))

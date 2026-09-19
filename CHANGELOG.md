@@ -8,6 +8,13 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco 2026.09.2
+
+- kept object-level and per-tool MultiGeo geometry synchronized after mirroring, rotation and skew
+- fixed NCC reference boundaries to use the same geometry as the plot, including projects saved by older versions
+- added regression tests for both mirror axes, repeated mirroring, saved stale boundaries and generated NCC toolpaths
+- existing NCC geometry and CNCJob/G-code must be regenerated after upgrading
+
 03.09.2026 - ndrco 2026.09.1
 
 - fixed a crash in Non-Copper Clearing when tool validity was enabled for a Geometry object

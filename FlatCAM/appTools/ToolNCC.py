@@ -1808,6 +1808,12 @@ class NonCopperClear(AppTool, Gerber):
 
 			box_geo = box_obj.solid_geometry
 			if box_kind == 'geometry':
+				if box_obj.multigeo:
+					# Use the same geometry as the plot, including for projects
+					# saved with stale object-level geometry by older versions.
+					box_geo = [geo for geo in self.flatten_list(
+						[tool['solid_geometry'] for tool in box_obj.tools.values()]
+					) if geo is not None and not geo.is_empty]
 				try:
 					__ = iter(box_geo)
 					env_obj = box_geo
