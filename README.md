@@ -1,4 +1,4 @@
-# FlatCAM 2026.09.3 — ndrco edition
+# FlatCAM 2026.09.4 — ndrco edition
 
 ![FlatCAM β](/FlatCAM/assets/resources/flatcam_icon128.png)
 
@@ -21,12 +21,25 @@ The recommended Linux package is the x86_64 AppImage from the
 [latest release](https://github.com/ndrco/FlatCAM/releases/latest).
 
 ```sh
-chmod +x flatcam-2026.09.3-x86_64.AppImage
-./flatcam-2026.09.3-x86_64.AppImage
+chmod +x flatcam-2026.09.4-x86_64.AppImage
+./flatcam-2026.09.4-x86_64.AppImage
 ```
 
 The AppImage is self-contained and stores user preferences in `~/.FlatCAM`.
 No system-wide Python installation is required.
+
+## Changes in 2026.09.4
+
+* Any-form Cutout now follows closed Gerber Edge-Cuts contours instead of
+  replacing multi-part or concave outlines with a bounding rectangle.
+* Nested closed contours are treated as internal slots and offset into the
+  void, while the external board perimeter is offset outwards.
+* Automatic holding gaps and mouse bites are applied only to external board
+  perimeters; internal slots remain continuous cuts.
+* If an internal contour cannot fit the selected cutter and margin, FlatCAM
+  still generates a centered fallback path and recommends a smaller tool.
+* Added regression coverage for a segmented L-shaped outline with a curved
+  internal slot.
 
 ## Changes in 2026.09.3
 
@@ -80,7 +93,7 @@ objects. Previously generated toolpaths are not updated automatically.
 
 ## Linux AppImage installation
 
-Download `flatcam-2026.09.3-x86_64.AppImage` from this repository's
+Download `flatcam-2026.09.4-x86_64.AppImage` from this repository's
 [Releases page](https://github.com/ndrco/FlatCAM/releases), make it executable
 and run it. The release is built for x86_64 Linux and bundles Python 3.10 and
 the required Python packages.

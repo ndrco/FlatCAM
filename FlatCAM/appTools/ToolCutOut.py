@@ -733,9 +733,32 @@ class CutOut(AppTool):
 
 				if kind == 'single':
 					object_geo = unary_union(object_geo)
+					gerber_paths = []
+					if cutout_obj.kind == 'gerber' and not convex_box:
+						gerber_paths, adjusted_internal = self._gerber_cutout_paths(
+							getattr(cutout_obj, 'follow_geometry', []),
+							margin + abs(dia / 2),
+							return_adjusted=True
+						)
+						if adjusted_internal:
+							app_obj.inform.emit('[WARNING_NOTCL] %s: %d.' % (
+								_("The selected tool and margin do not fit some internal contours. "
+								  "A centered fallback path was generated; a smaller tool is recommended"),
+								adjusted_internal
+							))
 
-					# for geo in object_geo:
-					if cutout_obj.kind == 'gerber':
+					if gerber_paths:
+						for cut_path, is_internal in gerber_paths:
+							if is_internal:
+								# Internal slots are cut continuously. Automatic holding
+								# gaps belong only on the outside board perimeter.
+								solid_geo.append(cut_path)
+								continue
+							c_geo, r_geo = cutout_handler(geom=cut_path, gapsize=gapsize)
+							solid_geo += c_geo
+							if gap_type == 'bt' and thin_entry != 0:
+								gaps_solid_geo += r_geo
+					elif cutout_obj.kind == 'gerber':
 						if isinstance(object_geo, MultiPolygon):
 							x0, y0, x1, y1 = object_geo.bounds
 							object_geo = box(x0, y0, x1, y1)
@@ -751,9 +774,10 @@ class CutOut(AppTool):
 						geo_buf = object_geo.buffer(0)
 						geo = geo_buf.exterior
 
-					solid_geo, rest_geo = cutout_handler(geom=geo, gapsize=gapsize)
-					if gap_type == 'bt' and thin_entry != 0:
-						gaps_solid_geo = rest_geo
+					if not gerber_paths:
+						solid_geo, rest_geo = cutout_handler(geom=geo, gapsize=gapsize)
+						if gap_type == 'bt' and thin_entry != 0:
+							gaps_solid_geo = rest_geo
 				else:
 					try:
 						__ = iter(object_geo)
@@ -784,9 +808,20 @@ class CutOut(AppTool):
 					mb_object_geo = deepcopy(object_geo)
 					if kind == 'single':
 						mb_object_geo = unary_union(mb_object_geo)
+						mb_gerber_paths = []
+						if cutout_obj.kind == 'gerber' and not convex_box:
+							mb_gerber_paths = self._gerber_cutout_paths(
+								getattr(cutout_obj, 'follow_geometry', []),
+								margin + mb_buff_val
+							)
 
-						# for geo in object_geo:
-						if cutout_obj.kind == 'gerber':
+						if mb_gerber_paths:
+							for mb_path, is_internal in mb_gerber_paths:
+								if is_internal:
+									continue
+								__, mb_r_geo = cutout_handler(geom=mb_path, gapsize=gapsize)
+								mouse_bites_geo += mb_r_geo
+						elif cutout_obj.kind == 'gerber':
 							if isinstance(mb_object_geo, MultiPolygon):
 								x0, y0, x1, y1 = mb_object_geo.bounds
 								mb_object_geo = box(x0, y0, x1, y1)
@@ -802,8 +837,9 @@ class CutOut(AppTool):
 							geo_buf = mb_object_geo.buffer(0)
 							mb_geo = geo_buf.exterior
 
-						__, rest_geo = cutout_handler(geom=mb_geo, gapsize=gapsize)
-						mouse_bites_geo = rest_geo
+						if not mb_gerber_paths:
+							__, rest_geo = cutout_handler(geom=mb_geo, gapsize=gapsize)
+							mouse_bites_geo = rest_geo
 					else:
 						try:
 							__ = iter(mb_object_geo)
@@ -1860,6 +1896,86 @@ class CutOut(AppTool):
 		return unary_union(diffs)
 
 	@staticmethod
+	def _gerber_cutout_paths(follow_geometry, offset, return_adjusted=False):
+		"""Build offset cut paths from closed Gerber follow-geometry contours.
+
+		Even-depth contours are board perimeters and are offset outwards.
+		Odd-depth contours are internal slots and are offset into the void.
+		"""
+		linear_geo = [
+			geo for geo in CutOut.flatten(follow_geometry)
+			if isinstance(geo, (LineString, LinearRing)) and not geo.is_empty
+		]
+		if not linear_geo:
+			return ([], 0) if return_adjusted else []
+
+		linework = unary_union(linear_geo)
+		if isinstance(linework, (LineString, LinearRing)):
+			merged = linework
+		else:
+			try:
+				merged = linemerge(linework)
+			except (TypeError, ValueError):
+				merged = linework
+
+		contours = []
+		for line in CutOut.flatten(merged):
+			if not isinstance(line, (LineString, LinearRing)) or not line.is_ring:
+				continue
+			polygon = Polygon(line)
+			if polygon.is_empty or not polygon.is_valid or polygon.area == 0:
+				continue
+			if any(polygon.equals(existing) for existing in contours):
+				continue
+			contours.append(polygon)
+
+		contours.sort(key=lambda poly: poly.area, reverse=True)
+		cut_paths = []
+		adjusted_internal = 0
+		for contour in contours:
+			probe = contour.representative_point()
+			depth = sum(
+				1 for container in contours
+				if container.area > contour.area and container.contains(probe)
+			)
+			is_internal = bool(depth % 2)
+			distance = -offset if is_internal else offset
+			offset_geo = contour.buffer(distance)
+			if is_internal and distance < 0 and \
+					(offset_geo.is_empty or not isinstance(offset_geo, Polygon)):
+				# The cutter cannot fit the requested internal offset. Keep
+				# generating a useful, centered compromise: find the largest
+				# inward offset that still produces one continuous contour.
+				low = 0.0
+				high = abs(distance)
+				offset_geo = contour
+				for __ in range(32):
+					candidate_distance = (low + high) / 2.0
+					candidate = contour.buffer(-candidate_distance)
+					if isinstance(candidate, Polygon) and not candidate.is_empty:
+						low = candidate_distance
+						offset_geo = candidate
+					else:
+						high = candidate_distance
+				adjusted_internal += 1
+				log.warning("CutOut: using a centered fallback path for an internal contour; "
+							"a smaller tool is recommended.")
+			elif offset_geo.is_empty:
+				log.warning("CutOut: contour is too small for the selected tool and margin.")
+				continue
+
+			if isinstance(offset_geo, Polygon):
+				cut_paths.append((offset_geo.exterior, is_internal))
+			elif isinstance(offset_geo, MultiPolygon):
+				for part in offset_geo.geoms:
+					if not part.is_empty:
+						cut_paths.append((part.exterior, is_internal))
+
+		if return_adjusted:
+			return cut_paths, adjusted_internal
+		return cut_paths
+
+	@staticmethod
 	def flatten(geometry):
 		"""
 		Creates a list of non-iterable linear geometry objects.
@@ -1869,19 +1985,25 @@ class CutOut(AppTool):
 
 		:param geometry: Shapely type or list or list of list of such.
 		"""
-		flat_geo = []
-		try:
+		if geometry is None:
+			return []
+		if isinstance(geometry, Polygon):
+			if geometry.is_empty:
+				return []
+			return [geometry.exterior] + [ring for ring in geometry.interiors]
+		if isinstance(geometry, (list, tuple)):
+			flat_geo = []
 			for geo in geometry:
-				if geo:
-					flat_geo += CutOut.flatten(geometry=geo)
-		except TypeError:
-			if isinstance(geometry, Polygon) and not geometry.is_empty:
-				flat_geo.append(geometry.exterior)
-				CutOut.flatten(geometry=geometry.interiors)
-			elif not geometry.is_empty:
-				flat_geo.append(geometry)
-
-		return flat_geo
+				flat_geo += CutOut.flatten(geometry=geo)
+			return flat_geo
+		if hasattr(geometry, 'geoms'):
+			flat_geo = []
+			for geo in geometry.geoms:
+				flat_geo += CutOut.flatten(geometry=geo)
+			return flat_geo
+		if not geometry.is_empty:
+			return [geometry]
+		return []
 
 	@staticmethod
 	def recursive_bounds(geometry):

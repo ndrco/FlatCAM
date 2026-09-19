@@ -16,6 +16,7 @@ from shapely.ops import unary_union
 
 # Importing the tool package also loads app_Main, which parses command-line args.
 with patch.object(sys, 'argv', [sys.argv[0]]):
+    from appTools.ToolCutOut import CutOut
     from appTools.ToolNCC import NonCopperClear
     from camlib import Geometry
 
@@ -143,6 +144,41 @@ class GeometryTransformNCCTest(unittest.TestCase):
 
         self.assertEqual(len(normalized.geoms), 1)
         self.assert_same_area(normalized, polygon)
+
+    def test_any_form_cutout_keeps_l_shape_and_internal_curved_slot(self):
+        outer_coords = [
+            (0, 0), (30, 0), (30, 10), (10, 10),
+            (10, 30), (0, 30), (0, 0),
+        ]
+        outer = Polygon(outer_coords)
+        slot = Point(20, 5).buffer(2, resolution=24)
+
+        # Gerber follow geometry commonly stores each Edge-Cuts segment
+        # separately, including the small segments used to approximate arcs.
+        follow_geometry = [
+            LineString([coords[index], coords[index + 1]])
+            for coords in (outer_coords, list(slot.exterior.coords))
+            for index in range(len(coords) - 1)
+        ]
+
+        paths = CutOut._gerber_cutout_paths(follow_geometry, offset=0.5)
+
+        self.assertEqual(len(paths), 2)
+        outer_cut = Polygon(next(path for path, internal in paths if not internal))
+        slot_cut = Polygon(next(path for path, internal in paths if internal))
+        self.assertGreater(outer_cut.area, outer.area)
+        self.assertFalse(outer_cut.covers(Point(20, 20)))
+        self.assertLess(slot_cut.area, slot.area)
+        self.assertTrue(slot_cut.contains(Point(20, 5)))
+
+        too_large_paths, adjusted = CutOut._gerber_cutout_paths(
+            follow_geometry, offset=2.1, return_adjusted=True
+        )
+        self.assertEqual(len(too_large_paths), 2)
+        self.assertEqual(adjusted, 1)
+        fallback_slot = Polygon(next(path for path, internal in too_large_paths if internal))
+        self.assertTrue(fallback_slot.contains(Point(20, 5)))
+        self.assertLess(fallback_slot.area, slot_cut.area)
 
 
 if __name__ == '__main__':

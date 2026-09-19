@@ -8,6 +8,14 @@ CHANGELOG for FlatCAM beta
 
 =================================================
 
+19.09.2026 - ndrco 2026.09.4
+
+- made Any-form Cutout follow segmented and concave Gerber Edge-Cuts contours instead of their bounding box
+- added nested-contour handling for curved internal slots with inside tool-radius compensation
+- limited automatic holding gaps and mouse bites to external board perimeters
+- added a centered fallback path and smaller-tool recommendation when an internal contour is too narrow
+- added regression coverage for an L-shaped board with a curved internal slot
+
 19.09.2026 - ndrco 2026.09.3
 
 - fixed the NCC Rest Machining crash when a boolean difference returned one Polygon
