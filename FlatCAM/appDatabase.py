@@ -1893,6 +1893,13 @@ class ToolsDB2(QtWidgets.QWidget):
 			"feedrate":         float(self.app.defaults["geometry_feedrate"]),
 			"feedrate_z":       float(self.app.defaults["geometry_feedrate_z"]),
 			"feedrate_rapid":   float(self.app.defaults["geometry_feedrate_rapid"]),
+			"entry_ramp":       self.app.defaults["geometry_entry_ramp"],
+			"entry_ramp_start_z": float(self.app.defaults["geometry_entry_ramp_start_z"]),
+			"entry_ramp_length": float(self.app.defaults["geometry_entry_ramp_length"]),
+			"entry_ramp_overcut": float(self.app.defaults["geometry_entry_ramp_overcut"]),
+			"entry_ramp_recovery_length": \
+				float(self.app.defaults["geometry_entry_ramp_recovery_length"]),
+			"entry_ramp_feedrate": float(self.app.defaults["geometry_entry_ramp_feedrate"]),
 			"spindlespeed":     self.app.defaults["geometry_spindlespeed"],
 			"dwell":            self.app.defaults["geometry_dwell"],
 			"dwelltime":        float(self.app.defaults["geometry_dwelltime"]),
@@ -1937,13 +1944,6 @@ class ToolsDB2(QtWidgets.QWidget):
 			"tools_ncc_contour":         self.app.defaults["tools_ncc_contour"],
 			"tools_ncc_offset_choice":  self.app.defaults["tools_ncc_offset_choice"],
 			"tools_ncc_offset_value":   float(self.app.defaults["tools_ncc_offset_value"]),
-			"tools_ncc_ramp":           self.app.defaults["tools_ncc_ramp"],
-			"tools_ncc_ramp_start_z":   float(self.app.defaults["tools_ncc_ramp_start_z"]),
-			"tools_ncc_ramp_length":    float(self.app.defaults["tools_ncc_ramp_length"]),
-			"tools_ncc_ramp_overcut":   float(self.app.defaults["tools_ncc_ramp_overcut"]),
-			"tools_ncc_ramp_recovery_length": \
-				float(self.app.defaults["tools_ncc_ramp_recovery_length"]),
-			"tools_ncc_ramp_feedrate":  float(self.app.defaults["tools_ncc_ramp_feedrate"]),
 
 			# Paint
 			"tools_paint_overlap":       float(self.app.defaults["tools_paint_overlap"]),

@@ -1,4 +1,4 @@
-"""Regression tests for the tangential NCC entry ramp."""
+"""Regression tests for the tangential Geometry entry ramp."""
 
 import sys
 import unittest
@@ -65,7 +65,7 @@ def make_job(preprocessor=None):
     return job, messages
 
 
-class NccEntryRampTest(unittest.TestCase):
+class GeometryEntryRampTest(unittest.TestCase):
     def test_ramp_overcuts_recovers_returns_and_repeats_start(self):
         job, _messages = make_job()
 

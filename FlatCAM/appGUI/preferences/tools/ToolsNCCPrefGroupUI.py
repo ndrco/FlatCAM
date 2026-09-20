@@ -1,8 +1,7 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QSettings
 
-from appGUI.GUIElements import RadioSet, FCDoubleSpinner, FCCheckBox, NumericalEvalTupleEntry, FCComboBox2, \
-	OptionalInputSection
+from appGUI.GUIElements import RadioSet, FCDoubleSpinner, FCCheckBox, NumericalEvalTupleEntry, FCComboBox2
 from appGUI.preferences.OptionsGroupUI import OptionsGroupUI
 
 import appTranslation as fcTranslate
@@ -275,57 +274,6 @@ class ToolsNCCPrefGroupUI(OptionsGroupUI):
 
 		grid0.addWidget(self.ncc_offset_label, 15, 0)
 		grid0.addWidget(self.ncc_offset_spinner, 15, 1)
-
-		# Tangential entry ramp
-		self.ncc_ramp_cb = FCCheckBox('%s' % _("Entry ramp"))
-		self.ncc_ramp_cb.setToolTip(
-			_("Enter each separate NCC path while moving horizontally.\n"
-			  "The tool touches at Start Z, ramps slightly below Cut Z,\n"
-			  "recovers to Cut Z, returns to the path start and cuts it again.\n"
-			  "Applied only to single-depth CNC jobs.")
-		)
-		grid0.addWidget(self.ncc_ramp_cb, 16, 0, 1, 2)
-
-		self.ncc_ramp_start_z_entry = FCDoubleSpinner()
-		self.ncc_ramp_start_z_entry.set_precision(self.decimals)
-		self.ncc_ramp_start_z_entry.set_range(-10000.0, 0.0)
-		self.ncc_ramp_start_z_entry.setSingleStep(0.01)
-		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Start Z")), 17, 0)
-		grid0.addWidget(self.ncc_ramp_start_z_entry, 17, 1)
-
-		self.ncc_ramp_length_entry = FCDoubleSpinner()
-		self.ncc_ramp_length_entry.set_precision(self.decimals)
-		self.ncc_ramp_length_entry.set_range(0.0001, 10000.0)
-		self.ncc_ramp_length_entry.setSingleStep(0.1)
-		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Ramp length")), 18, 0)
-		grid0.addWidget(self.ncc_ramp_length_entry, 18, 1)
-
-		self.ncc_ramp_overcut_entry = FCDoubleSpinner()
-		self.ncc_ramp_overcut_entry.set_precision(self.decimals)
-		self.ncc_ramp_overcut_entry.set_range(0.0, 10000.0)
-		self.ncc_ramp_overcut_entry.setSingleStep(0.01)
-		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Extra depth")), 19, 0)
-		grid0.addWidget(self.ncc_ramp_overcut_entry, 19, 1)
-
-		self.ncc_ramp_recovery_length_entry = FCDoubleSpinner()
-		self.ncc_ramp_recovery_length_entry.set_precision(self.decimals)
-		self.ncc_ramp_recovery_length_entry.set_range(0.0001, 10000.0)
-		self.ncc_ramp_recovery_length_entry.setSingleStep(0.1)
-		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Recovery length")), 20, 0)
-		grid0.addWidget(self.ncc_ramp_recovery_length_entry, 20, 1)
-
-		self.ncc_ramp_feedrate_entry = FCDoubleSpinner()
-		self.ncc_ramp_feedrate_entry.set_precision(self.decimals)
-		self.ncc_ramp_feedrate_entry.set_range(0.0001, 100000.0)
-		self.ncc_ramp_feedrate_entry.setSingleStep(10.0)
-		grid0.addWidget(QtWidgets.QLabel('%s:' % _("Ramp feedrate")), 21, 0)
-		grid0.addWidget(self.ncc_ramp_feedrate_entry, 21, 1)
-
-		self.ois_ncc_ramp = OptionalInputSection(
-			self.ncc_ramp_cb,
-			[self.ncc_ramp_start_z_entry, self.ncc_ramp_length_entry, self.ncc_ramp_overcut_entry,
-			 self.ncc_ramp_recovery_length_entry, self.ncc_ramp_feedrate_entry]
-		)
 
 		separator_line = QtWidgets.QFrame()
 		separator_line.setFrameShape(QtWidgets.QFrame.HLine)

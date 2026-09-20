@@ -130,7 +130,7 @@ class App(QtCore.QObject):
 	# ###############################################################################################################
 	# version = "Unstable Version"
 	version = '2026.09.7'
-	version_date = '2026/09/19'
+	version_date = '2026/09/20'
 	# Preferences schema version. Keep it independent from the application
 	# release version so normal upgrades do not reset compatible user settings.
 	defaults_version = '2024.4-ndrco.3'
@@ -2903,9 +2903,9 @@ class App(QtCore.QObject):
 				title = QtWidgets.QLabel(
 					f'<font size=8><B>FlatCAM{" β" if beta else ""}</B></font><BR>'
 					f'{_("2D Computer-Aided Printed Circuit Board Manufacturing")}<BR><BR><BR>'
-					f'<a href = \"https://bitbucket.org/jpcgt/flatcam/src/Beta/\"><B>{_("Development")}</B></a><BR>'
-					f'<a href = \"https://bitbucket.org/jpcgt/flatcam/downloads/\"><b>{_("DOWNLOAD")}</B></a><BR>'
-					f'<a href = \"https://bitbucket.org/jpcgt/flatcam/issues?status=new&status=open/\">'
+					f'<a href = \"https://github.com/ndrco/FlatCAM\"><B>ndrco / FlatCAM</B></a><BR>'
+					f'<a href = \"https://github.com/ndrco/FlatCAM/releases\"><b>{_("DOWNLOAD")}</B></a><BR>'
+					f'<a href = \"https://github.com/ndrco/FlatCAM/issues\">'
 					f'<B>{_("Issue tracker")}</B></a><BR>'
 				)
 				title.setOpenExternalLinks(True)
@@ -2915,7 +2915,9 @@ class App(QtCore.QObject):
 				tab_widget = QtWidgets.QTabWidget()
 				description_label = QtWidgets.QLabel(
 					f'FlatCAM <strong>{version} {"β " if beta else ""}</strong>({platform.architecture()[0]})<br>'
-					f'<a href = "{app.app_url}">{app.app_url}</a>'
+					f'{_("Maintained fork")}: '
+					f'<a href = "https://github.com/ndrco/FlatCAM">github.com/ndrco/FlatCAM</a><br>'
+					f'{_("Upstream project")}: <a href = "{app.app_url}">{app.app_url}</a>'
 				)
 				description_label.setOpenExternalLinks(True)
 
@@ -4384,6 +4386,8 @@ class App(QtCore.QObject):
 			"geometry_toolchangexy", 'geometry_cnctooldia', 'geometry_endz', 'geometry_endxy',
 			"geometry_extracut_length", "geometry_z_pdepth",
 			"geometry_feedrate_probe", "geometry_startz", "geometry_segx", "geometry_segy", "geometry_area_overz",
+			"geometry_entry_ramp_start_z", "geometry_entry_ramp_length", "geometry_entry_ramp_overcut",
+			"geometry_entry_ramp_recovery_length", "geometry_entry_ramp_feedrate",
 
 			# CNCJob Object
 			'cncjob_tooldia', "cncjob_al_travelz", "cncjob_al_probe_depth", "cncjob_al_grbl_jog_step",
@@ -4400,8 +4404,7 @@ class App(QtCore.QObject):
 			
 			# NCC Tool
 			"tools_ncc_tools", "tools_ncc_margin", "tools_ncc_offset_value", "tools_ncc_cutz", "tools_ncc_tipdia",
-			"tools_ncc_newdia", "tools_ncc_ramp_start_z", "tools_ncc_ramp_length", "tools_ncc_ramp_overcut",
-			"tools_ncc_ramp_recovery_length", "tools_ncc_ramp_feedrate",
+			"tools_ncc_newdia",
 
 			# Cutout Tool
 			"tools_cutout_tooldia", 'tools_cutout_margin', "tools_cutout_z", "tools_cutout_depthperpass",

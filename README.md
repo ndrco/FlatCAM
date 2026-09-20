@@ -30,22 +30,28 @@ No system-wide Python installation is required.
 
 ## Changes in 2026.09.7
 
-* Added an optional `Entry ramp` for every separate NCC toolpath. It touches
+* Added an optional `Entry ramp` for every separate Geometry toolpath. It touches
   the surface, enters while moving horizontally, goes slightly below `Cut Z`,
   recovers to `Cut Z`, returns to the start and cuts the beginning again at
   working depth.
-* The NCC Tool exposes `Start Z`, `Ramp length`, `Extra depth`,
-  `Recovery length` and `Ramp feedrate`. The defaults match a shallow PCB
+* Ramp controls now live in `Geometry Object` → `Generate CNCJob`, where they
+  apply per tool to Geometry created by NCC, Paint, Isolation and the Geometry
+  Editor. Defaults are configured in `Preferences` → `Geometry Options`.
+* The available controls are `Start Z`, `Ramp length`, `Extra depth`,
+  `Recovery length` and `Ramp feedrate`. Their defaults match a shallow PCB
   milling entry: `-0.03`, `0.7`, `0.02`, `0.5` mm and `150 mm/min`.
 * Short contours scale both entry phases proportionally. Unsupported
   preprocessors and G91 output safely fall back to the normal vertical plunge
   with a warning. Entry ramp is currently limited to single-depth jobs.
+* The About dialog identifies this build as the maintained
+  [`ndrco/FlatCAM`](https://github.com/ndrco/FlatCAM) fork and links its releases
+  and issue tracker.
 * Fixed a native PyQt/SIP crash when closing FlatCAM by stopping the argument
   listener, workers and multiprocessing pool before terminating Qt.
 
-Enable `Entry ramp` in NCC Tool for the selected cutter, then generate the NCC
-Geometry and CNCJob again. Existing Geometry, CNCJob and exported G-code files
-are not modified automatically.
+Generate a Geometry object with NCC, Paint or Isolation, open that Geometry,
+enable `Entry ramp` for the selected cutter and generate the CNCJob. Existing
+CNCJob and exported G-code files are not modified automatically.
 
 ## Changes in 2026.09.6
 

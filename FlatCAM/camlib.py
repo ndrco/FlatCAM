@@ -3604,19 +3604,39 @@ class CNCjob(Geometry):
 		self.z_feedrate = float(tool_dict['feedrate_z'])
 		self.feedrate_rapid = float(tool_dict['feedrate_rapid'])
 
-		self.entry_ramp_enabled = bool(tool_dict.get('tools_ncc_ramp', False))
-		self.entry_ramp_start_z = float(tool_dict.get('tools_ncc_ramp_start_z', -0.03))
-		self.entry_ramp_length = float(tool_dict.get('tools_ncc_ramp_length', 0.7))
-		self.entry_ramp_overcut = abs(float(tool_dict.get('tools_ncc_ramp_overcut', 0.02)))
+		self.entry_ramp_enabled = bool(tool_dict.get(
+			'entry_ramp', tool_dict.get('tools_ncc_ramp', self.app.defaults.get('geometry_entry_ramp', False))
+		))
+		self.entry_ramp_start_z = float(tool_dict.get(
+			'entry_ramp_start_z',
+			tool_dict.get('tools_ncc_ramp_start_z', self.app.defaults.get('geometry_entry_ramp_start_z', -0.03))
+		))
+		self.entry_ramp_length = float(tool_dict.get(
+			'entry_ramp_length',
+			tool_dict.get('tools_ncc_ramp_length', self.app.defaults.get('geometry_entry_ramp_length', 0.7))
+		))
+		self.entry_ramp_overcut = abs(float(tool_dict.get(
+			'entry_ramp_overcut',
+			tool_dict.get('tools_ncc_ramp_overcut', self.app.defaults.get('geometry_entry_ramp_overcut', 0.02))
+		)))
 		self.entry_ramp_recovery_length = float(
-			tool_dict.get('tools_ncc_ramp_recovery_length', 0.5)
+			tool_dict.get(
+				'entry_ramp_recovery_length', tool_dict.get(
+					'tools_ncc_ramp_recovery_length',
+					self.app.defaults.get('geometry_entry_ramp_recovery_length', 0.5)
+				)
+			)
 		)
-		self.entry_ramp_feedrate = float(tool_dict.get('tools_ncc_ramp_feedrate', self.feedrate))
+		self.entry_ramp_feedrate = float(tool_dict.get(
+			'entry_ramp_feedrate', tool_dict.get(
+				'tools_ncc_ramp_feedrate', self.app.defaults.get('geometry_entry_ramp_feedrate', self.feedrate)
+			)
+		))
 		self._entry_ramp_warned = False
 		if self.entry_ramp_enabled and self.multidepth:
 			self.entry_ramp_enabled = False
 			self.app.inform.emit(
-				'[WARNING_NOTCL] %s' % _("NCC entry ramp is disabled for multi-depth CNC jobs.")
+				'[WARNING_NOTCL] %s' % _("Entry ramp is disabled for multi-depth CNC jobs.")
 			)
 
 		self.spindlespeed = float(tool_dict['spindlespeed'])
@@ -7054,7 +7074,7 @@ class CNCjob(Geometry):
 		if not self._entry_ramp_warned:
 			self.app.inform.emit(
 				'[WARNING_NOTCL] %s' %
-				_("The selected preprocessor or G91 coordinates do not support the NCC entry ramp. "
+				_("The selected preprocessor or G91 coordinates do not support the entry ramp. "
 				  "A normal vertical plunge will be used.")
 			)
 			self._entry_ramp_warned = True

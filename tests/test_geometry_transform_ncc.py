@@ -243,6 +243,40 @@ class GeometryTransformNCCTest(unittest.TestCase):
         self.assertEqual(operation['data']['cutz'], -0.4)
         self.assertEqual(operation['plot_color'], '#29a3a3fa')
 
+    def test_ncc_entry_ramp_data_is_migrated_to_geometry_tool(self):
+        obj = GeometryObject.__new__(GeometryObject)
+        obj.default_data = {
+            'entry_ramp': False,
+            'entry_ramp_start_z': -0.03,
+            'entry_ramp_length': 0.7,
+            'entry_ramp_overcut': 0.02,
+            'entry_ramp_recovery_length': 0.5,
+            'entry_ramp_feedrate': 150.0,
+        }
+        obj.tools = {
+            1: {
+                'data': {
+                    'tools_ncc_ramp': True,
+                    'tools_ncc_ramp_start_z': -0.02,
+                    'tools_ncc_ramp_length': 0.8,
+                    'tools_ncc_ramp_overcut': 0.03,
+                    'tools_ncc_ramp_recovery_length': 0.4,
+                    'tools_ncc_ramp_feedrate': 120.0,
+                }
+            }
+        }
+
+        obj._migrate_entry_ramp_data()
+
+        data = obj.tools[1]['data']
+        self.assertTrue(data['entry_ramp'])
+        self.assertEqual(data['entry_ramp_start_z'], -0.02)
+        self.assertEqual(data['entry_ramp_length'], 0.8)
+        self.assertEqual(data['entry_ramp_overcut'], 0.03)
+        self.assertEqual(data['entry_ramp_recovery_length'], 0.4)
+        self.assertEqual(data['entry_ramp_feedrate'], 120.0)
+        self.assertFalse(any(key.startswith('tools_ncc_ramp') for key in data))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

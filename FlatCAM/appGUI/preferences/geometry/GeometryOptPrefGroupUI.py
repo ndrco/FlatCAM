@@ -211,6 +211,57 @@ class GeometryOptPrefGroupUI(OptionsGroupUI):
 		grid1.addWidget(frz_label, 9, 0)
 		grid1.addWidget(self.feedrate_z_entry, 9, 1)
 
+		# Tangential entry ramp
+		self.entry_ramp_cb = FCCheckBox('%s' % _("Entry ramp"))
+		self.entry_ramp_cb.setToolTip(
+			_("Enter every separate Geometry path while moving horizontally.\n"
+			  "The tool touches at Start Z, ramps slightly below Cut Z,\n"
+			  "recovers to Cut Z, returns to the path start and cuts it again.\n"
+			  "Applied only to single-depth CNC jobs.")
+		)
+		grid1.addWidget(self.entry_ramp_cb, 10, 0, 1, 2)
+
+		self.entry_ramp_start_z_entry = FCDoubleSpinner()
+		self.entry_ramp_start_z_entry.set_precision(self.decimals)
+		self.entry_ramp_start_z_entry.set_range(-10000.0, 0.0)
+		self.entry_ramp_start_z_entry.setSingleStep(0.01)
+		grid1.addWidget(QtWidgets.QLabel('%s:' % _("Start Z")), 11, 0)
+		grid1.addWidget(self.entry_ramp_start_z_entry, 11, 1)
+
+		self.entry_ramp_length_entry = FCDoubleSpinner()
+		self.entry_ramp_length_entry.set_precision(self.decimals)
+		self.entry_ramp_length_entry.set_range(0.0001, 10000.0)
+		self.entry_ramp_length_entry.setSingleStep(0.1)
+		grid1.addWidget(QtWidgets.QLabel('%s:' % _("Ramp length")), 12, 0)
+		grid1.addWidget(self.entry_ramp_length_entry, 12, 1)
+
+		self.entry_ramp_overcut_entry = FCDoubleSpinner()
+		self.entry_ramp_overcut_entry.set_precision(self.decimals)
+		self.entry_ramp_overcut_entry.set_range(0.0, 10000.0)
+		self.entry_ramp_overcut_entry.setSingleStep(0.01)
+		grid1.addWidget(QtWidgets.QLabel('%s:' % _("Extra depth")), 13, 0)
+		grid1.addWidget(self.entry_ramp_overcut_entry, 13, 1)
+
+		self.entry_ramp_recovery_length_entry = FCDoubleSpinner()
+		self.entry_ramp_recovery_length_entry.set_precision(self.decimals)
+		self.entry_ramp_recovery_length_entry.set_range(0.0001, 10000.0)
+		self.entry_ramp_recovery_length_entry.setSingleStep(0.1)
+		grid1.addWidget(QtWidgets.QLabel('%s:' % _("Recovery length")), 14, 0)
+		grid1.addWidget(self.entry_ramp_recovery_length_entry, 14, 1)
+
+		self.entry_ramp_feedrate_entry = FCDoubleSpinner()
+		self.entry_ramp_feedrate_entry.set_precision(self.decimals)
+		self.entry_ramp_feedrate_entry.set_range(0.0001, 100000.0)
+		self.entry_ramp_feedrate_entry.setSingleStep(10.0)
+		grid1.addWidget(QtWidgets.QLabel('%s:' % _("Ramp feedrate")), 15, 0)
+		grid1.addWidget(self.entry_ramp_feedrate_entry, 15, 1)
+
+		self.ois_entry_ramp = OptionalInputSection(
+			self.entry_ramp_cb,
+			[self.entry_ramp_start_z_entry, self.entry_ramp_length_entry, self.entry_ramp_overcut_entry,
+			 self.entry_ramp_recovery_length_entry, self.entry_ramp_feedrate_entry]
+		)
+
 		# Spindle Speed
 		spdlabel = QtWidgets.QLabel('%s:' % _('Spindle speed'))
 		spdlabel.setToolTip(
@@ -224,8 +275,8 @@ class GeometryOptPrefGroupUI(OptionsGroupUI):
 		self.cncspindlespeed_entry.set_range(0, 1000000)
 		self.cncspindlespeed_entry.set_step(100)
 
-		grid1.addWidget(spdlabel, 10, 0)
-		grid1.addWidget(self.cncspindlespeed_entry, 10, 1)
+		grid1.addWidget(spdlabel, 16, 0)
+		grid1.addWidget(self.cncspindlespeed_entry, 16, 1)
 
 		# Dwell
 		self.dwell_cb = FCCheckBox(label='%s' % _('Enable Dwell'))
@@ -243,9 +294,9 @@ class GeometryOptPrefGroupUI(OptionsGroupUI):
 		self.dwelltime_entry.setSingleStep(0.1)
 		self.dwelltime_entry.setWrapping(True)
 
-		grid1.addWidget(self.dwell_cb, 11, 0)
-		grid1.addWidget(dwelltime, 12, 0)
-		grid1.addWidget(self.dwelltime_entry, 12, 1)
+		grid1.addWidget(self.dwell_cb, 17, 0)
+		grid1.addWidget(dwelltime, 18, 0)
+		grid1.addWidget(self.dwelltime_entry, 18, 1)
 
 		self.ois_dwell = OptionalInputSection(self.dwell_cb, [self.dwelltime_entry])
 
@@ -259,7 +310,7 @@ class GeometryOptPrefGroupUI(OptionsGroupUI):
 		self.pp_geometry_name_cb.setFocusPolicy(Qt.StrongFocus)
 		self.pp_geometry_name_cb.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
 
-		grid1.addWidget(pp_label, 13, 0)
-		grid1.addWidget(self.pp_geometry_name_cb, 13, 1)
+		grid1.addWidget(pp_label, 19, 0)
+		grid1.addWidget(self.pp_geometry_name_cb, 19, 1)
 
 		self.layout.addStretch()

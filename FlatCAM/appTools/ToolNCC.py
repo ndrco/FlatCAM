@@ -132,12 +132,6 @@ class NonCopperClear(AppTool, Gerber):
 			"tools_ncc_contour":        self.ui.ncc_contour_cb,
 			"tools_ncc_offset_choice":  self.ui.ncc_choice_offset_cb,
 			"tools_ncc_offset_value":   self.ui.ncc_offset_spinner,
-			"tools_ncc_ramp":           self.ui.ncc_ramp_cb,
-			"tools_ncc_ramp_start_z":   self.ui.ncc_ramp_start_z_entry,
-			"tools_ncc_ramp_length":    self.ui.ncc_ramp_length_entry,
-			"tools_ncc_ramp_overcut":   self.ui.ncc_ramp_overcut_entry,
-			"tools_ncc_ramp_recovery_length": self.ui.ncc_ramp_recovery_length_entry,
-			"tools_ncc_ramp_feedrate":  self.ui.ncc_ramp_feedrate_entry,
 			"tools_ncc_milling_type":   self.ui.milling_type_radio,
 			"tools_ncc_check_valid":    self.ui.valid_cb
 		}
@@ -151,12 +145,6 @@ class NonCopperClear(AppTool, Gerber):
 			"n_contour":        "tools_ncc_contour",
 			"n_offset":         "tools_ncc_offset_choice",
 			"n_offset_value":   "tools_ncc_offset_value",
-			"n_ramp":           "tools_ncc_ramp",
-			"n_ramp_start_z":   "tools_ncc_ramp_start_z",
-			"n_ramp_length":    "tools_ncc_ramp_length",
-			"n_ramp_overcut":   "tools_ncc_ramp_overcut",
-			"n_ramp_recovery":  "tools_ncc_ramp_recovery_length",
-			"n_ramp_feedrate":  "tools_ncc_ramp_feedrate",
 			"n_milling_type":   "tools_ncc_milling_type",
 			"n_check":          "tools_ncc_check_valid",
 		}
@@ -537,15 +525,6 @@ class NonCopperClear(AppTool, Gerber):
 		self.ui.ncc_contour_cb.set_value(self.app.defaults["tools_ncc_contour"])
 		self.ui.ncc_choice_offset_cb.set_value(self.app.defaults["tools_ncc_offset_choice"])
 		self.ui.ncc_offset_spinner.set_value(self.app.defaults["tools_ncc_offset_value"])
-		self.ui.ncc_ramp_cb.set_value(self.app.defaults["tools_ncc_ramp"])
-		self.ui.ncc_ramp_start_z_entry.set_value(self.app.defaults["tools_ncc_ramp_start_z"])
-		self.ui.ncc_ramp_length_entry.set_value(self.app.defaults["tools_ncc_ramp_length"])
-		self.ui.ncc_ramp_overcut_entry.set_value(self.app.defaults["tools_ncc_ramp_overcut"])
-		self.ui.ncc_ramp_recovery_length_entry.set_value(
-			self.app.defaults["tools_ncc_ramp_recovery_length"]
-		)
-		self.ui.ncc_ramp_feedrate_entry.set_value(self.app.defaults["tools_ncc_ramp_feedrate"])
-
 		self.ui.ncc_rest_cb.set_value(self.app.defaults["tools_ncc_rest"])
 		self.ui.on_rest_machining_check(state=self.app.defaults["tools_ncc_rest"])
 
@@ -575,6 +554,12 @@ class NonCopperClear(AppTool, Gerber):
 			"feedrate":                 self.app.defaults["geometry_feedrate"],
 			"feedrate_z":               self.app.defaults["geometry_feedrate_z"],
 			"feedrate_rapid":           self.app.defaults["geometry_feedrate_rapid"],
+			"entry_ramp":               self.app.defaults["geometry_entry_ramp"],
+			"entry_ramp_start_z":       self.app.defaults["geometry_entry_ramp_start_z"],
+			"entry_ramp_length":        self.app.defaults["geometry_entry_ramp_length"],
+			"entry_ramp_overcut":       self.app.defaults["geometry_entry_ramp_overcut"],
+			"entry_ramp_recovery_length": self.app.defaults["geometry_entry_ramp_recovery_length"],
+			"entry_ramp_feedrate":      self.app.defaults["geometry_entry_ramp_feedrate"],
 			"dwell":                    self.app.defaults["geometry_dwell"],
 			"dwelltime":                self.app.defaults["geometry_dwelltime"],
 			"multidepth":               self.app.defaults["geometry_multidepth"],
@@ -607,12 +592,6 @@ class NonCopperClear(AppTool, Gerber):
 			"tools_ncc_ref":            self.app.defaults["tools_ncc_ref"],
 			"tools_ncc_offset_choice":  self.app.defaults["tools_ncc_offset_choice"],
 			"tools_ncc_offset_value":   self.app.defaults["tools_ncc_offset_value"],
-			"tools_ncc_ramp":           self.app.defaults["tools_ncc_ramp"],
-			"tools_ncc_ramp_start_z":   self.app.defaults["tools_ncc_ramp_start_z"],
-			"tools_ncc_ramp_length":    self.app.defaults["tools_ncc_ramp_length"],
-			"tools_ncc_ramp_overcut":   self.app.defaults["tools_ncc_ramp_overcut"],
-			"tools_ncc_ramp_recovery_length": self.app.defaults["tools_ncc_ramp_recovery_length"],
-			"tools_ncc_ramp_feedrate":  self.app.defaults["tools_ncc_ramp_feedrate"],
 			"tools_ncc_milling_type":   self.app.defaults["tools_ncc_milling_type"],
 			"tools_ncc_check_valid":    self.app.defaults["tools_ncc_check_valid"],
 		}
@@ -4375,63 +4354,6 @@ class NccUI:
 		self.grid3.addWidget(self.ncc_offset_spinner, 19, 1)
 
 		self.ois_ncc_offset = OptionalInputSection(self.ncc_choice_offset_cb, [self.ncc_offset_spinner])
-
-		# Tangential entry ramp
-		self.ncc_ramp_cb = FCCheckBox('%s' % _("Entry ramp"))
-		self.ncc_ramp_cb.setObjectName("n_ramp")
-		self.ncc_ramp_cb.setToolTip(
-			_("Enter each separate NCC path while moving horizontally.\n"
-			  "The tool touches at Start Z, ramps slightly below Cut Z,\n"
-			  "recovers to Cut Z, returns to the path start and cuts it again.\n"
-			  "Applied only to single-depth CNC jobs.")
-		)
-		self.grid3.addWidget(self.ncc_ramp_cb, 20, 0, 1, 2)
-
-		self.ncc_ramp_start_z_entry = FCDoubleSpinner(callback=self.confirmation_message)
-		self.ncc_ramp_start_z_entry.set_precision(self.decimals)
-		self.ncc_ramp_start_z_entry.set_range(-10000.0, 0.0)
-		self.ncc_ramp_start_z_entry.setSingleStep(0.01)
-		self.ncc_ramp_start_z_entry.setObjectName("n_ramp_start_z")
-		self.grid3.addWidget(FCLabel('%s:' % _("Start Z")), 21, 0)
-		self.grid3.addWidget(self.ncc_ramp_start_z_entry, 21, 1)
-
-		self.ncc_ramp_length_entry = FCDoubleSpinner(callback=self.confirmation_message)
-		self.ncc_ramp_length_entry.set_precision(self.decimals)
-		self.ncc_ramp_length_entry.set_range(0.0001, 10000.0)
-		self.ncc_ramp_length_entry.setSingleStep(0.1)
-		self.ncc_ramp_length_entry.setObjectName("n_ramp_length")
-		self.grid3.addWidget(FCLabel('%s:' % _("Ramp length")), 22, 0)
-		self.grid3.addWidget(self.ncc_ramp_length_entry, 22, 1)
-
-		self.ncc_ramp_overcut_entry = FCDoubleSpinner(callback=self.confirmation_message)
-		self.ncc_ramp_overcut_entry.set_precision(self.decimals)
-		self.ncc_ramp_overcut_entry.set_range(0.0, 10000.0)
-		self.ncc_ramp_overcut_entry.setSingleStep(0.01)
-		self.ncc_ramp_overcut_entry.setObjectName("n_ramp_overcut")
-		self.grid3.addWidget(FCLabel('%s:' % _("Extra depth")), 23, 0)
-		self.grid3.addWidget(self.ncc_ramp_overcut_entry, 23, 1)
-
-		self.ncc_ramp_recovery_length_entry = FCDoubleSpinner(callback=self.confirmation_message)
-		self.ncc_ramp_recovery_length_entry.set_precision(self.decimals)
-		self.ncc_ramp_recovery_length_entry.set_range(0.0001, 10000.0)
-		self.ncc_ramp_recovery_length_entry.setSingleStep(0.1)
-		self.ncc_ramp_recovery_length_entry.setObjectName("n_ramp_recovery")
-		self.grid3.addWidget(FCLabel('%s:' % _("Recovery length")), 24, 0)
-		self.grid3.addWidget(self.ncc_ramp_recovery_length_entry, 24, 1)
-
-		self.ncc_ramp_feedrate_entry = FCDoubleSpinner(callback=self.confirmation_message)
-		self.ncc_ramp_feedrate_entry.set_precision(self.decimals)
-		self.ncc_ramp_feedrate_entry.set_range(0.0001, 100000.0)
-		self.ncc_ramp_feedrate_entry.setSingleStep(10.0)
-		self.ncc_ramp_feedrate_entry.setObjectName("n_ramp_feedrate")
-		self.grid3.addWidget(FCLabel('%s:' % _("Ramp feedrate")), 25, 0)
-		self.grid3.addWidget(self.ncc_ramp_feedrate_entry, 25, 1)
-
-		self.ois_ncc_ramp = OptionalInputSection(
-			self.ncc_ramp_cb,
-			[self.ncc_ramp_start_z_entry, self.ncc_ramp_length_entry, self.ncc_ramp_overcut_entry,
-			 self.ncc_ramp_recovery_length_entry, self.ncc_ramp_feedrate_entry]
-		)
 
 		separator_line = QtWidgets.QFrame()
 		separator_line.setFrameShape(QtWidgets.QFrame.HLine)

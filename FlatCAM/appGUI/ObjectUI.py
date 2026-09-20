@@ -1369,6 +1369,63 @@ class GeometryObjectUI(ObjectUI):
 		self.feedrate_probe_label.hide()
 		self.feedrate_probe_entry.setVisible(False)
 
+		# Tangential entry ramp
+		self.entry_ramp_cb = FCCheckBox('%s' % _("Entry ramp"))
+		self.entry_ramp_cb.setObjectName("g_entry_ramp")
+		self.entry_ramp_cb.setToolTip(
+			_("Enter every separate Geometry path while moving horizontally.\n"
+			  "The tool touches at Start Z, ramps slightly below Cut Z,\n"
+			  "recovers to Cut Z, returns to the path start and cuts it again.\n"
+			  "Applied only to single-depth CNC jobs.")
+		)
+		self.grid3.addWidget(self.entry_ramp_cb, 19, 0, 1, 2)
+
+		self.entry_ramp_start_z_entry = FCDoubleSpinner(callback=self.confirmation_message)
+		self.entry_ramp_start_z_entry.set_precision(self.decimals)
+		self.entry_ramp_start_z_entry.set_range(-10000.0, 0.0)
+		self.entry_ramp_start_z_entry.setSingleStep(0.01)
+		self.entry_ramp_start_z_entry.setObjectName("g_entry_ramp_start_z")
+		self.grid3.addWidget(FCLabel('%s:' % _("Start Z")), 20, 0)
+		self.grid3.addWidget(self.entry_ramp_start_z_entry, 20, 1)
+
+		self.entry_ramp_length_entry = FCDoubleSpinner(callback=self.confirmation_message)
+		self.entry_ramp_length_entry.set_precision(self.decimals)
+		self.entry_ramp_length_entry.set_range(0.0001, 10000.0)
+		self.entry_ramp_length_entry.setSingleStep(0.1)
+		self.entry_ramp_length_entry.setObjectName("g_entry_ramp_length")
+		self.grid3.addWidget(FCLabel('%s:' % _("Ramp length")), 21, 0)
+		self.grid3.addWidget(self.entry_ramp_length_entry, 21, 1)
+
+		self.entry_ramp_overcut_entry = FCDoubleSpinner(callback=self.confirmation_message)
+		self.entry_ramp_overcut_entry.set_precision(self.decimals)
+		self.entry_ramp_overcut_entry.set_range(0.0, 10000.0)
+		self.entry_ramp_overcut_entry.setSingleStep(0.01)
+		self.entry_ramp_overcut_entry.setObjectName("g_entry_ramp_overcut")
+		self.grid3.addWidget(FCLabel('%s:' % _("Extra depth")), 22, 0)
+		self.grid3.addWidget(self.entry_ramp_overcut_entry, 22, 1)
+
+		self.entry_ramp_recovery_length_entry = FCDoubleSpinner(callback=self.confirmation_message)
+		self.entry_ramp_recovery_length_entry.set_precision(self.decimals)
+		self.entry_ramp_recovery_length_entry.set_range(0.0001, 10000.0)
+		self.entry_ramp_recovery_length_entry.setSingleStep(0.1)
+		self.entry_ramp_recovery_length_entry.setObjectName("g_entry_ramp_recovery")
+		self.grid3.addWidget(FCLabel('%s:' % _("Recovery length")), 23, 0)
+		self.grid3.addWidget(self.entry_ramp_recovery_length_entry, 23, 1)
+
+		self.entry_ramp_feedrate_entry = FCDoubleSpinner(callback=self.confirmation_message)
+		self.entry_ramp_feedrate_entry.set_precision(self.decimals)
+		self.entry_ramp_feedrate_entry.set_range(0.0001, 100000.0)
+		self.entry_ramp_feedrate_entry.setSingleStep(10.0)
+		self.entry_ramp_feedrate_entry.setObjectName("g_entry_ramp_feedrate")
+		self.grid3.addWidget(FCLabel('%s:' % _("Ramp feedrate")), 24, 0)
+		self.grid3.addWidget(self.entry_ramp_feedrate_entry, 24, 1)
+
+		self.ois_entry_ramp_geo = OptionalInputSection(
+			self.entry_ramp_cb,
+			[self.entry_ramp_start_z_entry, self.entry_ramp_length_entry, self.entry_ramp_overcut_entry,
+			 self.entry_ramp_recovery_length_entry, self.entry_ramp_feedrate_entry]
+		)
+
 		# #################################################################
 		# ################# GRID LAYOUT 4   ###############################
 		# #################################################################

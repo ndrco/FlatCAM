@@ -320,6 +320,12 @@ class FlatCAMDefaults:
 
 		"geometry_feedrate": 120,
 		"geometry_feedrate_z": 60,
+		"geometry_entry_ramp": False,
+		"geometry_entry_ramp_start_z": -0.03,
+		"geometry_entry_ramp_length": 0.7,
+		"geometry_entry_ramp_overcut": 0.02,
+		"geometry_entry_ramp_recovery_length": 0.5,
+		"geometry_entry_ramp_feedrate": 150.0,
 		"geometry_spindlespeed": 0,
 		"geometry_dwell": False,
 		"geometry_dwelltime": 1,
@@ -476,12 +482,6 @@ class FlatCAMDefaults:
 		"tools_ncc_rest": False,
 		"tools_ncc_offset_choice": False,
 		"tools_ncc_offset_value": 0.0000,
-		"tools_ncc_ramp": False,
-		"tools_ncc_ramp_start_z": -0.03,
-		"tools_ncc_ramp_length": 0.7,
-		"tools_ncc_ramp_overcut": 0.02,
-		"tools_ncc_ramp_recovery_length": 0.5,
-		"tools_ncc_ramp_feedrate": 150.0,
 		"tools_ncc_ref": 0,     # ITSELF
 		"tools_ncc_area_shape": "square",
 		"tools_ncc_milling_type": 'cl',
@@ -889,6 +889,21 @@ class FlatCAMDefaults:
 			return
 		if defaults is None:
 			return
+
+		# 2026.09.7 initially exposed this CNCJob option only under NCC.
+		# Preserve customized values while moving it to the Geometry namespace.
+		legacy_ramp_names = {
+			"tools_ncc_ramp": "geometry_entry_ramp",
+			"tools_ncc_ramp_start_z": "geometry_entry_ramp_start_z",
+			"tools_ncc_ramp_length": "geometry_entry_ramp_length",
+			"tools_ncc_ramp_overcut": "geometry_entry_ramp_overcut",
+			"tools_ncc_ramp_recovery_length": "geometry_entry_ramp_recovery_length",
+			"tools_ncc_ramp_feedrate": "geometry_entry_ramp_feedrate",
+		}
+		for legacy_name, geometry_name in legacy_ramp_names.items():
+			if geometry_name not in defaults and legacy_name in defaults:
+				defaults[geometry_name] = defaults[legacy_name]
+			defaults.pop(legacy_name, None)
 
 		# Perform migration if necessary but only if the defaults dict is not empty
 		if self.__is_old_defaults(defaults) and defaults:

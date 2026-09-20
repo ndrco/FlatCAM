@@ -343,6 +343,12 @@ class ToolIsolation(AppTool, Gerber):
 			"feedrate":                 self.app.defaults["geometry_feedrate"],
 			"feedrate_z":               self.app.defaults["geometry_feedrate_z"],
 			"feedrate_rapid":           self.app.defaults["geometry_feedrate_rapid"],
+			"entry_ramp":               self.app.defaults["geometry_entry_ramp"],
+			"entry_ramp_start_z":       self.app.defaults["geometry_entry_ramp_start_z"],
+			"entry_ramp_length":        self.app.defaults["geometry_entry_ramp_length"],
+			"entry_ramp_overcut":       self.app.defaults["geometry_entry_ramp_overcut"],
+			"entry_ramp_recovery_length": self.app.defaults["geometry_entry_ramp_recovery_length"],
+			"entry_ramp_feedrate":      self.app.defaults["geometry_entry_ramp_feedrate"],
 
 			"multidepth":               self.app.defaults["geometry_multidepth"],
 			"ppname_g":                 self.app.defaults["geometry_ppname_g"],

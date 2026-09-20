@@ -432,6 +432,12 @@ class GeometryObject(FlatCAMObj, Geometry):
 			"feedrate": self.ui.cncfeedrate_entry,
 			"feedrate_z": self.ui.feedrate_z_entry,
 			"feedrate_rapid": self.ui.feedrate_rapid_entry,
+			"entry_ramp": self.ui.entry_ramp_cb,
+			"entry_ramp_start_z": self.ui.entry_ramp_start_z_entry,
+			"entry_ramp_length": self.ui.entry_ramp_length_entry,
+			"entry_ramp_overcut": self.ui.entry_ramp_overcut_entry,
+			"entry_ramp_recovery_length": self.ui.entry_ramp_recovery_length_entry,
+			"entry_ramp_feedrate": self.ui.entry_ramp_feedrate_entry,
 			"spindlespeed": self.ui.cncspindlespeed_entry,
 			"dwell": self.ui.dwell_cb,
 			"dwelltime": self.ui.dwelltime_entry,
@@ -470,6 +476,12 @@ class GeometryObject(FlatCAMObj, Geometry):
 			"feedrate": self.ui.cncfeedrate_entry,
 			"feedrate_z": self.ui.feedrate_z_entry,
 			"feedrate_rapid": self.ui.feedrate_rapid_entry,
+			"entry_ramp": self.ui.entry_ramp_cb,
+			"entry_ramp_start_z": self.ui.entry_ramp_start_z_entry,
+			"entry_ramp_length": self.ui.entry_ramp_length_entry,
+			"entry_ramp_overcut": self.ui.entry_ramp_overcut_entry,
+			"entry_ramp_recovery_length": self.ui.entry_ramp_recovery_length_entry,
+			"entry_ramp_feedrate": self.ui.entry_ramp_feedrate_entry,
 			"extracut": self.ui.extracut_cb,
 			"extracut_length": self.ui.e_cut_entry,
 			"spindlespeed": self.ui.cncspindlespeed_entry,
@@ -554,6 +566,7 @@ class GeometryObject(FlatCAMObj, Geometry):
 			self.tools = deepcopy(temp_tools)
 
 		self._migrate_legacy_thin_gap_tool()
+		self._migrate_entry_ramp_data()
 
 		self.ui.tool_offset_entry.hide()
 		self.ui.tool_offset_lbl.hide()
@@ -1604,6 +1617,7 @@ class GeometryObject(FlatCAMObj, Geometry):
 		self.ui.ois_dwell_geo.on_cb_change()
 		self.ui.ois_mpass_geo.on_cb_change()
 		self.ui.ois_tcz_geo.on_cb_change()
+		self.ui.ois_entry_ramp_geo.on_cb_change()
 
 	def on_apply_param_to_all_clicked(self):
 		if self.ui.geo_tools_table.rowCount() == 0:
@@ -2091,6 +2105,23 @@ class GeometryObject(FlatCAMObj, Geometry):
 			'plot_color': '#29a3a3fa'
 		})
 		del self.tools[9999]
+
+	def _migrate_entry_ramp_data(self):
+		"""Move 2026.09.7 NCC-only ramp settings to each Geometry tool."""
+		legacy_names = {
+			'entry_ramp': 'tools_ncc_ramp',
+			'entry_ramp_start_z': 'tools_ncc_ramp_start_z',
+			'entry_ramp_length': 'tools_ncc_ramp_length',
+			'entry_ramp_overcut': 'tools_ncc_ramp_overcut',
+			'entry_ramp_recovery_length': 'tools_ncc_ramp_recovery_length',
+			'entry_ramp_feedrate': 'tools_ncc_ramp_feedrate',
+		}
+		for tool in self.tools.values():
+			data = tool.setdefault('data', {})
+			for generic_name, legacy_name in legacy_names.items():
+				if generic_name not in data:
+					data[generic_name] = deepcopy(data.get(legacy_name, self.default_data[generic_name]))
+				data.pop(legacy_name, None)
 
 	def mtool_gen_cncjob(self, outname=None, tools_dict=None, tools_in_use=None, segx=None, segy=None,
 						 plot=True, use_thread=True):
@@ -2916,8 +2947,8 @@ class GeometryObject(FlatCAMObj, Geometry):
 			self.options['startz'] = float(self.options['startz']) * factor
 
 		param_list = ['cutz', 'depthperpass', 'travelz', 'feedrate', 'feedrate_z', 'feedrate_rapid',
-					  'endz', 'toolchangez', 'tools_ncc_ramp_start_z', 'tools_ncc_ramp_length',
-					  'tools_ncc_ramp_overcut', 'tools_ncc_ramp_recovery_length', 'tools_ncc_ramp_feedrate']
+					  'endz', 'toolchangez', 'entry_ramp_start_z', 'entry_ramp_length',
+					  'entry_ramp_overcut', 'entry_ramp_recovery_length', 'entry_ramp_feedrate']
 
 		if isinstance(self, GeometryObject):
 			temp_tools_dict = {}
