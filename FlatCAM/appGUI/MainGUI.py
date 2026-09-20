@@ -2426,6 +2426,19 @@ class MainGUI(QtWidgets.QMainWindow):
 				self.grb_edit_toolbar.setVisible(True)
 				self.grb_edit_toolbar.setDisabled(True)
 
+	@staticmethod
+	def _widget_uses_delete_for_text_editing(widget):
+		"""Return True when Delete belongs to the focused editor, not to an app shortcut."""
+		if isinstance(widget, (
+				QtWidgets.QLineEdit,
+				QtWidgets.QTextEdit,
+				QtWidgets.QPlainTextEdit,
+				QtWidgets.QAbstractSpinBox,
+		)):
+			return True
+
+		return isinstance(widget, QtWidgets.QComboBox) and widget.isEditable()
+
 	def keyPressEvent(self, event):
 		"""
 		Key event handler for the entire app.
@@ -2778,6 +2791,13 @@ class MainGUI(QtWidgets.QMainWindow):
 				# It's meant to make a difference between delete objects and delete tools in
 				# Geometry Selected tool table
 				if key == QtCore.Qt.Key_Delete and matplotlib_key_flag is False:
+					# Do not turn text editing into a destructive application shortcut. This is
+					# especially important for the Geometry CNCJob numeric fields, whose spin
+					# boxes may forward an otherwise ordinary Delete key event to this window.
+					focused_widget = QtWidgets.QApplication.focusWidget()
+					if self._widget_uses_delete_for_text_editing(focused_widget):
+						return
+
 					widget_name = self.plot_tab_area.currentWidget().objectName()
 					if widget_name == 'database_tab':
 						# Tools DB saved, update flag

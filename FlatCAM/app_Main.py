@@ -4685,7 +4685,7 @@ class App(QtCore.QObject):
 		# work only if the notebook tab on focus is the properties_tab and only if the object is Geometry
 		if notebook_widget_name == 'properties_tab':
 			if self.collection.get_active().kind == 'geometry':
-				self.collection.get_active().on_tool_delete()
+				self.collection.get_active().on_tool_delete(clicked_signal=False)
 
 		# work only if the notebook tab on focus is the Tools_Tab
 		elif notebook_widget_name == 'tool_tab':

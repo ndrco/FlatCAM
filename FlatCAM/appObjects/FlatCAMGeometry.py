@@ -1409,10 +1409,10 @@ class GeometryObject(FlatCAMObj, Geometry):
 		self.ui_connect()
 		self.builduiSig.emit()
 
-	def on_tool_delete(self, clicked_signal, all_tools=None):
+	def on_tool_delete(self, clicked_signal=False, all_tools=None):
 		"""
-		It's important to keep the not clicked_signal parameter otherwise the signal will go to the all_tools
-		parameter and I might get all the tool deleted
+		Keep clicked_signal ahead of all_tools so the bool emitted by QPushButton.clicked does not get
+		mistaken for an all-tools request. The default also supports keyboard and context-menu calls.
 		"""
 		self.ui_disconnect()
 

@@ -24,6 +24,9 @@ CHANGELOG for FlatCAM beta
 - preserved Geometry ramp parameters through preferences, tool data and metric/imperial conversion
 - added regression tests for the generated ramp sequence, short paths and preprocessor fallback
 - added prominent ndrco repository, release and issue links to the About dialog
+- stopped the global Delete shortcut from intercepting text and numeric parameter editing
+- fixed Geometry tool deletion from the keyboard and context menu calling an incompatible Qt slot
+- added regression tests for Delete in Ramp spin boxes and keyboard-driven tool deletion
 
 19.09.2026 - ndrco 2026.09.6
 
