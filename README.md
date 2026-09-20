@@ -48,10 +48,20 @@ No system-wide Python installation is required.
   and issue tracker.
 * Fixed a native PyQt/SIP crash when closing FlatCAM by stopping the argument
   listener, workers and multiprocessing pool before terminating Qt.
+* Fixed the global Delete shortcut intercepting text and numeric Geometry
+  fields, while keeping keyboard deletion of selected tools working.
+* Fixed `Cut Z` for C1/C2/C3 cutters being replaced by the hidden V-tool
+  calculation when switching between tools.
+* Fixed `Gap type: Thin` disappearing after Geometry parameters were edited.
+  The shallow bridge pass is now preserved and still uses the selected
+  physical cutter without a synthetic `9999` tool change.
 
 Generate a Geometry object with NCC, Paint or Isolation, open that Geometry,
 enable `Entry ramp` for the selected cutter and generate the CNCJob. Existing
 CNCJob and exported G-code files are not modified automatically.
+
+Cutout Geometry created by an earlier 2026.09.7 build may already have lost
+its Thin operation. Recreate the Cutout Geometry and CNCJob after upgrading.
 
 ## Changes in 2026.09.6
 

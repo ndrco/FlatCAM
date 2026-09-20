@@ -28,6 +28,8 @@ CHANGELOG for FlatCAM beta
 - fixed Geometry tool deletion from the keyboard and context menu calling an incompatible Qt slot
 - added regression tests for Delete in Ramp spin boxes and keyboard-driven tool deletion
 - prevented hidden V-tip fields from recalculating Cut Z for C1/C2/C3 tools when switching rows
+- preserved Thin cutout operations when Geometry parameters are edited or applied to all tools
+- added regression coverage for Thin operation persistence through Geometry form updates
 
 19.09.2026 - ndrco 2026.09.6
 
