@@ -243,6 +243,88 @@ class GeometryTransformNCCTest(unittest.TestCase):
         self.assertEqual(operation['data']['cutz'], -0.4)
         self.assertEqual(operation['plot_color'], '#29a3a3fa')
 
+    @staticmethod
+    def make_geometry_form_storage_object():
+        class Entry:
+            def __init__(self, value):
+                self.value = value
+
+            def get_value(self):
+                return self.value
+
+        class Item:
+            def __init__(self, value):
+                self.value = value
+
+            def text(self):
+                return str(self.value)
+
+        class Combo:
+            def __init__(self, value):
+                self.value = value
+
+            def currentText(self):
+                return self.value
+
+        class Table:
+            @staticmethod
+            def rowCount():
+                return 1
+
+            @staticmethod
+            def currentRow():
+                return 0
+
+            @staticmethod
+            def item(row, column):
+                return Item(3.175 if column == 1 else 1)
+
+            @staticmethod
+            def cellWidget(row, column):
+                return Combo({2: 'Path', 3: 'Rough', 4: 'C1'}[column])
+
+        gap_operation = {
+            'kind': 'thin_gap',
+            'solid_geometry': [LineString([(10, 0), (12, 0)])],
+            'data': {'cutz': -0.4},
+            'plot_color': '#29a3a3fa'
+        }
+        obj = GeometryObject.__new__(GeometryObject)
+        obj.tools = {
+            1: {
+                'tooldia': 3.175,
+                'offset': 'Path',
+                'offset_value': 0.0,
+                'type': 'Rough',
+                'tool_type': 'C1',
+                'data': {'cutz': -2.0},
+                'solid_geometry': [LineString([(0, 0), (10, 0)])],
+                'extra_cut_operations': [gap_operation],
+            }
+        }
+        obj.form_fields = {'cutz': Entry(-2.1)}
+        obj.ui = SimpleNamespace(
+            geo_tools_table=Table(),
+            tool_offset_entry=Entry(0.0),
+            grid3=SimpleNamespace(indexOf=lambda widget: -1),
+        )
+        obj.ui_disconnect = lambda: None
+        obj.ui_connect = lambda: None
+        obj.sender = lambda: None
+        return obj
+
+    def test_geometry_form_updates_preserve_thin_gap_operation(self):
+        for update_method in ('gui_form_to_storage', 'on_apply_param_to_all_clicked'):
+            with self.subTest(update_method=update_method):
+                obj = self.make_geometry_form_storage_object()
+
+                getattr(obj, update_method)()
+
+                operation = obj.tools[1]['extra_cut_operations'][0]
+                self.assertEqual(operation['kind'], 'thin_gap')
+                self.assertEqual(operation['data']['cutz'], -0.4)
+                self.assertEqual(obj.tools[1]['data']['cutz'], -2.1)
+
     def test_ncc_entry_ramp_data_is_migrated_to_geometry_tool(self):
         obj = GeometryObject.__new__(GeometryObject)
         obj.default_data = {

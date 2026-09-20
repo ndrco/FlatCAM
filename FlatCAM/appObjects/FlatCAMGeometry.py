@@ -1648,10 +1648,14 @@ class GeometryObject(FlatCAMObj, Geometry):
 
 		# this new dict will hold the actual useful data, another dict that is the value of key 'data'
 		temp_tools = {}
-		temp_dia = {}
 		temp_data = {}
 
 		for tooluid_key, tooluid_value in self.tools.items():
+			# Start from the complete tool record.  Cutout stores the shallow
+			# Thin-gap pass in ``extra_cut_operations``; rebuilding only the
+			# legacy fields here used to silently discard that operation as soon
+			# as any Geometry parameter was edited or applied to all tools.
+			temp_dia = deepcopy(tooluid_value)
 			for key, value in tooluid_value.items():
 				if key == 'tooldia':
 					temp_dia[key] = tooldia_item
@@ -1733,11 +1737,14 @@ class GeometryObject(FlatCAMObj, Geometry):
 
 		# this new dict will hold the actual useful data, another dict that is the value of key 'data'
 		temp_tools = {}
-		temp_dia = {}
 		temp_data = {}
 
 		for tooluid_key, tooluid_value in self.tools.items():
 			if int(tooluid_key) == tooluid_item:
+				# Preserve extension fields owned by Geometry-producing tools.
+				# In particular, Any-form Cutout keeps the Thin-gap pass in
+				# ``extra_cut_operations`` and it must survive form updates.
+				temp_dia = deepcopy(tooluid_value)
 				for key, value in tooluid_value.items():
 					if key == 'tooldia':
 						temp_dia[key] = tooldia_item
