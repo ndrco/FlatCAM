@@ -27,6 +27,7 @@ CHANGELOG for FlatCAM beta
 - stopped the global Delete shortcut from intercepting text and numeric parameter editing
 - fixed Geometry tool deletion from the keyboard and context menu calling an incompatible Qt slot
 - added regression tests for Delete in Ramp spin boxes and keyboard-driven tool deletion
+- prevented hidden V-tip fields from recalculating Cut Z for C1/C2/C3 tools when switching rows
 
 19.09.2026 - ndrco 2026.09.6
 

@@ -1532,10 +1532,17 @@ class GeometryObject(FlatCAMObj, Geometry):
 			self.ui.cutz_entry.setToolTip('')
 
 	def update_cutz(self):
+		row = self.ui.geo_tools_table.currentRow()
+		if row < 0:
+			return
+
+		tool_type_item = self.ui.geo_tools_table.cellWidget(row, 4)
+		if tool_type_item is None or tool_type_item.currentText() != 'V':
+			return
+
 		vdia = float(self.ui.tipdia_entry.get_value())
 		half_vangle = float(self.ui.tipangle_entry.get_value()) / 2
 
-		row = self.ui.geo_tools_table.currentRow()
 		tool_uid_item = self.ui.geo_tools_table.item(row, 5)
 		if tool_uid_item is None:
 			return

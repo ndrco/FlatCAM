@@ -277,6 +277,70 @@ class GeometryTransformNCCTest(unittest.TestCase):
         self.assertEqual(data['entry_ramp_feedrate'], 120.0)
         self.assertFalse(any(key.startswith('tools_ncc_ramp') for key in data))
 
+    @staticmethod
+    def make_cutz_object(tool_type, cutz=-0.8):
+        class Entry:
+            def __init__(self, value):
+                self.value = value
+
+            def get_value(self):
+                return self.value
+
+            def set_value(self, value):
+                self.value = value
+
+        class Item:
+            def __init__(self, value):
+                self.value = value
+
+            def text(self):
+                return str(self.value)
+
+        class Combo:
+            def currentText(self):
+                return tool_type
+
+        class Table:
+            @staticmethod
+            def currentRow():
+                return 0
+
+            @staticmethod
+            def item(row, column):
+                return Item(1.0 if column == 1 else 1)
+
+            @staticmethod
+            def cellWidget(row, column):
+                return Combo() if column == 4 else None
+
+        obj = GeometryObject.__new__(GeometryObject)
+        obj.decimals = 4
+        obj.old_cutz = -1.2
+        obj.tools = {1: {'data': {'cutz': cutz}}}
+        obj.ui = SimpleNamespace(
+            geo_tools_table=Table(),
+            tipdia_entry=Entry(0.1),
+            tipangle_entry=Entry(30.0),
+            cutz_entry=Entry(cutz),
+        )
+        return obj
+
+    def test_c1_tool_keeps_manual_cutz_when_hidden_v_fields_are_loaded(self):
+        obj = self.make_cutz_object('C1')
+
+        obj.update_cutz()
+
+        self.assertEqual(obj.ui.cutz_entry.get_value(), -0.8)
+        self.assertEqual(obj.tools[1]['data']['cutz'], -0.8)
+
+    def test_v_tool_still_calculates_cutz_from_tip_geometry(self):
+        obj = self.make_cutz_object('V')
+
+        obj.update_cutz()
+
+        self.assertEqual(obj.ui.cutz_entry.get_value(), -1.6794)
+        self.assertEqual(obj.tools[1]['data']['cutz'], -1.6794)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
